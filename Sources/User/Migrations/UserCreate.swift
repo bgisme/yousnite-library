@@ -12,8 +12,8 @@ extension User {
             try await database.schema(User.schema)
                 .id()
                 .field("email", .string, .required)
-                .field("auth_type", .string, .required)
-                .field("auth_value", .string, .required)
+                .field("type", .string, .required)
+                .field("value", .string, .required)
                 .create()
         }
 

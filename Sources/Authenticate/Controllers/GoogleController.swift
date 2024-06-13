@@ -2,7 +2,7 @@ import Vapor
 import Fluent
 import JWT
 
-public struct GoogleAuthenticationController {
+public struct GoogleController {
     public init() { }
     
     struct GoogleAuthResponse: Content {
@@ -26,7 +26,7 @@ public struct GoogleAuthenticationController {
 }
 
 // MARK: - Configure
-extension GoogleAuthenticationController {
+extension GoogleController {
     static public private(set) var clientId = ""
     
     static func configure() throws {
@@ -41,7 +41,7 @@ extension GoogleAuthenticationController {
 }
 
 // MARK: - RouteCollection
-extension GoogleAuthenticationController: RouteCollection {
+extension GoogleController: RouteCollection {
     public func boot(routes: any RoutesBuilder) throws {
         
     }

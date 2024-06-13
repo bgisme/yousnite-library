@@ -2,12 +2,12 @@ import Vapor
 import Fluent
 import JWT
 
-public struct AppleAuthenticationController { 
+public struct AppleController { 
     public init() { }
 }
 
 // MARK: - Configure
-extension AppleAuthenticationController {
+extension AppleController {
     public static private(set) var applicationId = ""
     public static private(set) var servicesId = ""
     public static private(set) var teamId = ""
@@ -15,12 +15,12 @@ extension AppleAuthenticationController {
     public static private(set) var jwkKey = ""
     
     public static func authResponse(req: Request) throws -> AuthResponse {
-        try req.content.decode(AppleAuthenticationController.AuthResponse.self)
+        try req.content.decode(AppleController.AuthResponse.self)
     }
     
     public static func idToken(authResponse: AuthResponse, req: Request) async throws -> AppleIdentityToken {
         let token = try await req.jwt.apple
-            .verify(authResponse.idToken, applicationIdentifier: AppleAuthenticationController.servicesId)
+            .verify(authResponse.idToken, applicationIdentifier: AppleController.servicesId)
             .get()
         guard token.issuer == "https://appleid.apple.com" else { throw Exception.notIssuedByApple }
         return token
@@ -45,14 +45,14 @@ extension AppleAuthenticationController {
 }
 
 // MARK: - RouteCollection
-extension AppleAuthenticationController: RouteCollection {
+extension AppleController: RouteCollection {
     public func boot(routes: any RoutesBuilder) throws {
         #warning("TODO: make API routes")
     }
 }
 
 // MARK: - Decoding
-extension AppleAuthenticationController {
+extension AppleController {
     public struct AuthResponse: Decodable {
         public struct User: Decodable {
             public struct Name: Decodable {
@@ -78,13 +78,13 @@ extension AppleAuthenticationController {
 }
 
 // MARK: - Errors
-extension AppleAuthenticationController {
+extension AppleController {
     public enum Exception: Error {
         case notIssuedByApple
     }
 }
 
-extension AppleAuthenticationController.Exception: AbortError {
+extension AppleController.Exception: AbortError {
     public var status: HTTPResponseStatus {
         switch self {
         case .notIssuedByApple: return .unauthorized

@@ -2,14 +2,12 @@ import Vapor
 import Fluent
 
 /// Sole purpose of this class is to preserve a state value for email invitations and password resets
-final class EmailAuthentication: Model, Content {
-    static let schema = "email_authentications"
+final class PasswordToken: Model, Content {
+    static let schema = "password_tokens"
     
     @ID(key: .id) var id: UUID?
     @Field(key: "state") var state: String
-    @Boolean(key: "is_join") var isJoin: Bool
     @Field(key: "email") var email: String
-    @Field(key: "password_hash") var passwordHash: String
     @Timestamp(key: "expires_at", on: .none) var expiresAt: Date?
     @Timestamp(key: "sent_at", on: .none) var sentAt: Date?
     @OptionalField(key: "result") var result: String?
@@ -18,17 +16,13 @@ final class EmailAuthentication: Model, Content {
     
     init(id: UUID? = nil,
          state: String,
-         isJoin: Bool,
          email: String,
-         passwordHash: String,
          expiresAfter: TimeInterval = 600,
          isFailed: Bool = false,
          result: String?) {
         self.id = id
         self.state = state
-        self.isJoin = isJoin
         self.email = email
-        self.passwordHash = passwordHash
         self.expiresAt = Date().addingTimeInterval(expiresAfter)
         self.sentAt = !isFailed ? Date() : nil
         self.result = result
@@ -42,9 +36,9 @@ final class EmailAuthentication: Model, Content {
 }
 
 // MARK: - Utilities
-extension EmailAuthentication {
-    static func find(email: String, db: Database) async throws -> EmailAuthentication {
-        guard let ae = try await EmailAuthentication
+extension PasswordToken {
+    static func find(email: String, db: Database) async throws -> PasswordToken {
+        guard let ae = try await PasswordToken
             .query(on: db)
             .filter(\.$email == email)
             .first()
@@ -55,8 +49,8 @@ extension EmailAuthentication {
         return ae
     }
     
-    static func find(state: String, db: Database) async throws -> EmailAuthentication {
-        guard let ae = try await EmailAuthentication
+    static func find(state: String, db: Database) async throws -> PasswordToken {
+        guard let ae = try await PasswordToken
             .query(on: db)
             .filter(\.$state == state)
             .first()
