@@ -1,8 +1,10 @@
 import Vapor
 import Fluent
+import JWTKit
+
 
 public struct MainController { }
-    
+
 // MARK: - Configure
 extension MainController {
     public static func configure(app: Application,
@@ -11,11 +13,19 @@ extension MainController {
                                  emailSender: String,
                                  viewControllerSource: ViewControllerSource.Type) throws {
         self.source = source
+        
+        /// configure sources
         try AppleController.configure()
         try EmailController.configure(app: app,
-                                                    source: emailSource,
-                                                    sender: emailSender)
+                                      source: emailSource,
+                                      sender: emailSender)
         try GoogleController.configure()
+        
+        /// JWT
+        app.jwt.apple.applicationIdentifier = AppleController.servicesId
+        let signer = try JWTSigner.es256(key: .private(pem: AppleController.jwkKey))
+        app.jwt.signers.use(signer, kid: .init(string: AppleController.jwkId), isDefault: false)
+
         try ViewController.configure(source: viewControllerSource)
     }
 }
@@ -24,14 +34,6 @@ extension MainController {
 extension MainController {
     public static var source: MainControllerSource.Type!
     
-//    public static func isExistingUser(_ method: AuthenticationMethod, db: Database) async throws -> Bool {
-//        (try? await user(method, db: db)) != nil
-//    }
-    
-//    @discardableResult
-//    public static func createUser(_ method: AuthenticationMethod, db: Database) async throws -> any Authenticatable {
-//        try await source.createUser(method, db: db)
-//    }
     public static func createUser(_ method: AuthenticationMethod, on db: Database) async throws -> any UserAuthenticatable {
         try await source.createUser(method, on: db)
     }
@@ -43,22 +45,6 @@ extension MainController {
     public static func authenticatedUser(req: Request) throws -> (any UserAuthenticatable)? {
         try source.authenticatedUser(req: req)
     }
-    
-//    public static func updateAuthenticated(password: String, req: Request) async throws {
-//        try await source.updateAuthenticated(password: password, req: req)
-//    }
-    
-//    public static func verify(_ password: String, for user: any Authenticatable, db: Database) throws -> Bool {
-//        try source.verify(password, for: user, db: db)
-//    }
-
-//    public static func authenticatedUser(req: Request) throws -> any Authenticatable {
-//        try source.authenticatedUser(req: req)
-//    }
-    
-//    public static func authenticatedEmail(req: Request) throws -> String {
-//        try source.authenticatedEmail(req: req)
-//    }
     
     public static func authenticate(_ user: any UserAuthenticatable, req: Request) throws {
         try source.authenticate(user, req: req)
