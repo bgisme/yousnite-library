@@ -13,6 +13,7 @@ extension User {
                 .id()
                 .field("email", .string, .required)
                 .field("type", .string, .required)
+                .unique(on: "email", "type")
                 .field("value", .string, .required)
                 .create()
         }

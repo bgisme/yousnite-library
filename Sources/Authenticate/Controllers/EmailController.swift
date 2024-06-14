@@ -66,7 +66,7 @@ extension EmailController {
                                       req: Request) async throws {
         // check conflicts... new user but one exists... not new user and one does not exist
         let method = AuthenticationMethod.email(email)
-        let isExisting = try await MainController.user(method, on: req.db) != nil
+        let isExisting = try await MainController.source.user(method, on: req.db) != nil
         let isNewAndNotExisting = isNewUser && !isExisting
         let isNotNewAndExisting = !isNewUser && isExisting
         guard isNewAndNotExisting || isNotNewAndExisting else {
@@ -96,7 +96,7 @@ extension EmailController {
         }
         if isUpdate {
             // user must be authenticated
-            guard let u = try MainController.authenticatedUser(req: req) else {
+            guard let u = try MainController.source.authenticatedUser(req: req) else {
                 throw Exception.noAuthenicatedUser
             }
             user = u
@@ -111,10 +111,10 @@ extension EmailController {
             guard !pt.isExpired else { throw Exception.passwordTokenExpired(pt.email) }
             // if user exists — update... if not — create
             let method = AuthenticationMethod.email(pt.email, password: p.value)
-            if let u = try await MainController.user(method, on: req.db) {
+            if let u = try await MainController.source.user(method, on: req.db) {
                 user = u
             } else {
-                user = try await MainController.createUser(method, on: req.db)
+                user = try await MainController.source.createUser(method, on: req.db)
                 isNew = true
             }
         }
@@ -155,14 +155,14 @@ extension EmailController {
         let email = si.email.address
         let password = si.password.value
         // find user
-        guard let user = try await MainController.user(.email(email), on: req.db) else {
+        guard let user = try await MainController.source.user(.email(email), on: req.db) else {
             throw Exception.noUser(email: email)
         }
         // check password
         guard try user.verify(password: password) else {
             throw Exception.wrongPassword(email: email)
         }
-        try MainController.authenticate(user, req: req)
+        try MainController.source.authenticate(user, req: req)
     }
 }
 

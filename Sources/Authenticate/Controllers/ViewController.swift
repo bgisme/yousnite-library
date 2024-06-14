@@ -91,7 +91,7 @@ extension ViewController: RouteCollection {
     /// <form> with field for email to request join link
     func displayJoinRequest(req: Request) async throws -> Response {
         guard let s = Self.source else { throw Abort(.internalServerError) }
-        let user = try? MainController.authenticatedUser(req: req)
+        let user = try? MainController.source.authenticatedUser(req: req)
         guard user == nil else {
             return try await s.joinDone(req: req)
         }
@@ -136,7 +136,7 @@ extension ViewController: RouteCollection {
     /// <form> with fields for password and confirm-password
     func displayPasswordUpdate(req: Request) async throws -> Response {
         guard let s = Self.source else { throw Abort(.internalServerError) }
-        if let user = try MainController.authenticatedUser(req: req) {
+        if let user = try MainController.source.authenticatedUser(req: req) {
             // authenticated
             let input = Self.passwordUpdateView(email: user.email,
                                                 isNewUser: false,
@@ -165,14 +165,14 @@ extension ViewController: RouteCollection {
         guard let s = Self.source else { throw Abort(.internalServerError) }
         var isNewUser = false
         do {
-            if let _ = try? MainController.authenticatedUser(req: req) {
+            if let _ = try? MainController.source.authenticatedUser(req: req) {
                 // authenticated
                 try await EmailController.changePassword(isUpdate: true, req: req)
             } else {
                 // unauthenticated
                 let (user, isNew) = try await EmailController.changePassword(req: req)
                 isNewUser = isNew
-                try MainController.authenticate(user, req: req)
+                try MainController.source.authenticate(user, req: req)
             }
         } catch {
             Self.setException(error, method: .email(), req: req)
@@ -184,7 +184,7 @@ extension ViewController: RouteCollection {
     // display sign-in page with options
     func displaySignIn(req: Request) async throws -> Response {
         guard let s = Self.source else { throw Abort(.internalServerError) }
-        guard (try? MainController.authenticatedUser(req: req)) == nil else {
+        guard (try? MainController.source.authenticatedUser(req: req)) == nil else {
             return try await s.signInDone(req: req)
         }
         let (apple, google) = Self.appleGoogleView(req: req)
@@ -224,12 +224,12 @@ extension ViewController: RouteCollection {
         let isJoin = Self.isJoin(req: req)
         if let email = token.email {
             let method = AuthenticationMethod.apple(email: email, id: token.subject.value)
-            if let existing = try await MainController.user(method, on: req.db) {
-                try MainController.authenticate(existing, req: req)
+            if let existing = try await MainController.source.user(method, on: req.db) {
+                try MainController.source.authenticate(existing, req: req)
                 response = try await s.signInDone(req: req)
             } else if isJoin {
-                let new = try await MainController.createUser(method, on: req.db)
-                try MainController.authenticate(new, req: req)
+                let new = try await MainController.source.createUser(method, on: req.db)
+                try MainController.source.authenticate(new, req: req)
                 response = try await s.joinDone(req: req)
             } else {
                 Self.setException("No registered account.", method: .apple, req: req)
@@ -265,12 +265,12 @@ extension ViewController: RouteCollection {
         if let email = info.email {
             // use Google subject as user identifier, not email which can change
             let method = AuthenticationMethod.google(email: email, id: info.subject.value)
-            if let existing = try await MainController.user(method, on: req.db) {
-                try MainController.authenticate(existing, req: req)
+            if let existing = try await MainController.source.user(method, on: req.db) {
+                try MainController.source.authenticate(existing, req: req)
                 response = try await s.signInDone(req: req)
             } else if isJoin {
-                let new = try await MainController.createUser(method, on: req.db)
-                try MainController.authenticate(new, req: req)
+                let new = try await MainController.source.createUser(method, on: req.db)
+                try MainController.source.authenticate(new, req: req)
                 response = try await s.joinDone(req: req)
             } else {
                 Self.setException("No registered account.", method: .google, req: req)
@@ -287,7 +287,7 @@ extension ViewController: RouteCollection {
     
     func signOut(req: Request) async throws -> Response {
         guard let s = Self.source else { throw Abort(.internalServerError) }
-        try MainController.unauthenticate(req: req)
+        MainController.source.unauthenticate(isSessionEnd: true, req: req)
         return try await s.signOutDone(req: req)
     }
 }
