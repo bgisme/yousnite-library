@@ -38,7 +38,6 @@ extension EmailController: RouteCollection {
     
     public func boot(routes: any RoutesBuilder) throws {
         routes.get(Self.passwordRoute + [":\(Self.stateKey)"], use: passwordReset)
-#warning("TODO: password update needs to be on user authenticated route")
         routes.get(Self.passwordUpdateRoute, use: passwordUpdate)
         routes.post(Self.signInRoute, use: signIn)
     }

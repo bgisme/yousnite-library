@@ -1,6 +1,5 @@
 import Vapor
 
-
 public struct SignIn: Content {
     public let email: Email
     public let password: Password

@@ -2,7 +2,6 @@ import Vapor
 import Fluent
 import JWTKit
 
-
 public struct MainController { }
 
 // MARK: - Configure
