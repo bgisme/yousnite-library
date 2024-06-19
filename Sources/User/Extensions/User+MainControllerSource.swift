@@ -1,10 +1,9 @@
 import Vapor
 import Fluent
 import Authenticate
-import User
 
-// MARK: - MainControllerSource
-extension User: MainControllerSource {
+// MARK: - MainDelegate
+extension User: MainDelegate {
     public static func createUser(_ method: AuthenticationMethod, on db: Database) async throws -> any UserAuthenticatable {
         let user = try User(method)
         try await user.save(on: db)

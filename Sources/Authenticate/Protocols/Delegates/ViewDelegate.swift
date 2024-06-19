@@ -1,7 +1,7 @@
 import Vapor
 import Fluent
 
-public protocol ViewControllerSource {
+public protocol ViewDelegate {
     static func displayJoin(state: String,
                             email: EmailJoinView,
                             apple: AppleView,

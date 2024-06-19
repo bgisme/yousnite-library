@@ -1,6 +1,6 @@
 import Vapor
 
-public protocol EmailSource {
+public protocol EmailDelegate {
     typealias Result = String
     
     static func emailInvite(link: String, to: String, from: String) async throws -> Result?

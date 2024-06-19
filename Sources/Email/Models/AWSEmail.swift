@@ -130,7 +130,7 @@ public struct AWSEmail {
     }
 }
 
-extension AWSEmail: EmailSource {
+extension AWSEmail: EmailDelegate {
     public typealias Result = String
     
     public static func emailInvite(link: String, 

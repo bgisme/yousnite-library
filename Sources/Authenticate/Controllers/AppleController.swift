@@ -2,7 +2,7 @@ import Vapor
 import Fluent
 import JWT
 
-public struct AppleController { 
+public struct AppleController: Sendable { 
     public init() { }
 }
 

@@ -1,23 +1,23 @@
 import Vapor
 import Fluent
 
-public struct EmailController {
+public struct EmailController: Sendable {
     public init() { }
 }
 
 // MARK: - Configure
 extension EmailController {
-    static var source: EmailSource.Type?
+    static var delegate: EmailDelegate.Type!
     static var sender: String?
     
     public static func configure(app: Application,
-                                 source: EmailSource.Type,
+                                 delegate: EmailDelegate.Type,
                                  sender: String,
                                  joinRoute: [PathComponent] = Self.joinRoute,
                                  passwordResetRoute: [PathComponent] = Self.passwordResetRoute,
                                  passwordUpdateRoute: [PathComponent] = Self.passwordUpdateRoute) throws {
         // Class properties
-        self.source = source
+        self.delegate = delegate
         self.sender = sender
         self.joinRoute = joinRoute
         self.passwordResetRoute = passwordResetRoute
@@ -66,7 +66,7 @@ extension EmailController {
                                       req: Request) async throws {
         // check conflicts... new user but one exists... not new user and one does not exist
         let method = AuthenticationMethod.email(email)
-        let isExisting = try await MainController.source.user(method, on: req.db) != nil
+        let isExisting = try await MainController.delegate.user(method, on: req.db) != nil
         let isNewAndNotExisting = isNewUser && !isExisting
         let isNotNewAndExisting = !isNewUser && isExisting
         guard isNewAndNotExisting || isNotNewAndExisting else {
@@ -96,7 +96,7 @@ extension EmailController {
         }
         if isUpdate {
             // user must be authenticated
-            guard let u = try MainController.source.authenticatedUser(req: req) else {
+            guard let u = try MainController.delegate.authenticatedUser(req: req) else {
                 throw Exception.noAuthenicatedUser
             }
             user = u
@@ -111,10 +111,10 @@ extension EmailController {
             guard !pt.isExpired else { throw Exception.passwordTokenExpired(pt.email) }
             // if user exists — update... if not — create
             let method = AuthenticationMethod.email(pt.email, password: p.value)
-            if let u = try await MainController.source.user(method, on: req.db) {
+            if let u = try await MainController.delegate.user(method, on: req.db) {
                 user = u
             } else {
-                user = try await MainController.source.createUser(method, on: req.db)
+                user = try await MainController.delegate.createUser(method, on: req.db)
                 isNew = true
             }
         }
@@ -155,14 +155,14 @@ extension EmailController {
         let email = si.email.address
         let password = si.password.value
         // find user
-        guard let user = try await MainController.source.user(.email(email), on: req.db) else {
+        guard let user = try await MainController.delegate.user(.email(email), on: req.db) else {
             throw Exception.noUser(email: email)
         }
         // check password
         guard try user.verify(password: password) else {
             throw Exception.wrongPassword(email: email)
         }
-        try MainController.source.authenticate(user, req: req)
+        try MainController.delegate.authenticate(user, req: req)
     }
 }
 
@@ -179,7 +179,7 @@ extension EmailController {
     static func sendEmail(_ kind: EmailKind,
                           to address: String,
                           req: Request) async throws {
-        guard let s = Self.source,
+        guard let d = Self.delegate,
               let sender = Self.sender
         else {
             throw Abort(.internalServerError)
@@ -189,13 +189,13 @@ extension EmailController {
         do {
             switch kind {
             case .invite(let state, let path):
-                result = try await s.emailInvite(link: path, to: address, from: sender)
+                result = try await d.emailInvite(link: path, to: address, from: sender)
                 try await createPasswordToken(state: state, email: address, result: result, db: req.db)
             case .passwordReset(let state, let path):
-                result = try await s.emailPasswordReset(link: path, to: address, from: sender)
+                result = try await d.emailPasswordReset(link: path, to: address, from: sender)
                 try await createPasswordToken(state: state, email: address, result: result, db: req.db)
             case .passwordUpdated:
-                result = try await s.emailPasswordUpdated(to: address, from: sender)
+                result = try await d.emailPasswordUpdated(to: address, from: sender)
             }
             isSent = true
         } catch {

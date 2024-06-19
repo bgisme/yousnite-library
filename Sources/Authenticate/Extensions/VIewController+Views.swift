@@ -10,7 +10,7 @@ extension ViewController {
         
         init(servicesId: String = AppleController.servicesId,
              scopes: AppleScopeOptions = .all,
-             redirectUri: String = ViewController.appleRedirectPath,
+             redirectUri: String,
              error: String? = nil) {
             self.servicesId = servicesId
             self.scopes = scopes
@@ -25,7 +25,7 @@ extension ViewController {
         let error: String?
         
         init(clientId: String = GoogleController.clientId,
-             redirectUri: String = ViewController.googleRedirectPath,
+             redirectUri: String,
              error: String? = nil) {
             self.clientId = clientId
             self.redirectUri = redirectUri
@@ -40,9 +40,11 @@ extension ViewController {
         if let e = e {
             switch e.method {
             case .apple:
-                apple = Apple(error: e.message)
+                let appleRedirectUri = ViewController.appleRedirectPath
+                apple = Apple(redirectUri: appleRedirectUri, error: e.message)
             case .google:
-                google = Google(error: e.message)
+                let googleRedirectUri = ViewController.googleRedirectPath
+                google = Google(redirectUri: googleRedirectUri, error: e.message)
             default:
                 break
             }
@@ -60,8 +62,8 @@ extension ViewController {
         let error: String?
         
         init(email: String? = nil,
-             postTo: String = ViewController.emailRequestPath(isNewUser: true),
-             signInPath: String = ViewController.signInPath(),
+             postTo: String/* = ViewController.emailRequestPath(isNewUser: true)*/,
+             signInPath: String/* = ViewController.signInPath()*/,
              error: String? = nil) {
             self.email = email
             self.postTo = postTo
@@ -71,15 +73,21 @@ extension ViewController {
     }
     
     static func emailJoinView(isDeleted: Bool = false, req: Request) -> EmailJoinView {
+        let postTo = ViewController.emailRequestPath(isNewUser: true)
+        let signInPath = ViewController.signInPath()
         if let e = try? Self.exception(isDeleted: isDeleted, req: req) {
             switch e.method {
             case .email(let address):
-                return EmailJoin(email: address, error: e.message)
+                return EmailJoin(email: address,
+                                 postTo: postTo,
+                                 signInPath: signInPath,
+                                 error: e.message)
             default:
                 break
             }
         }
-        return EmailJoin()
+        return EmailJoin(postTo: postTo,
+                         signInPath: signInPath)
     }
 }
 
@@ -92,9 +100,9 @@ extension ViewController {
         let email: String?
         let error: String?
         
-        init(postTo: String = ViewController.signInPath(),
-             joinPath: String = ViewController.joinPath(),
-             passwordResetPath: String = ViewController.passwordResetPath(),
+        init(postTo: String,
+             joinPath: String,
+             passwordResetPath: String,
              email: String? = nil,
              error: String? = nil) {
             self.postTo = postTo
@@ -106,15 +114,23 @@ extension ViewController {
     }
     
     static func emailSignInView(isDeleted: Bool = false, req: Request) -> EmailSignInView {
+        let postTo = ViewController.signInPath()
+        let joinPath = ViewController.joinPath()
+        let passwordResetPath = ViewController.passwordResetPath()
         if let e = try? Self.exception(isDeleted: isDeleted, req: req) {
             switch e.method {
             case .email(let address):
-                return EmailSignIn(email: address, error: e.message)
+                return EmailSignIn(postTo: postTo,
+                                   joinPath: joinPath,
+                                   passwordResetPath: passwordResetPath,
+                                   email: address, error: e.message)
             default:
                 break
             }
         }
-        return EmailSignIn()
+        return EmailSignIn(postTo: postTo,
+                           joinPath: joinPath,
+                           passwordResetPath: passwordResetPath)
     }
 }
 
@@ -127,9 +143,9 @@ extension ViewController {
         let email: String?
         let error: String?
         
-        init(postTo: String = ViewController.emailRequestPath(),
-             joinPath: String = ViewController.joinPath(),
-             signInPath: String = ViewController.signInPath(),
+        init(postTo: String,
+             joinPath: String,
+             signInPath: String,
              email: String? = nil,
              error: String? = nil) {
             self.postTo = postTo
@@ -141,15 +157,24 @@ extension ViewController {
     }
     
     static func passwordResetView(isDeleted: Bool = false, req: Request) -> PasswordResetView {
+        let postTo = ViewController.emailRequestPath()
+        let joinPath = ViewController.joinPath()
+        let signInPath = ViewController.signInPath()
         if let e = try? Self.exception(isDeleted: isDeleted, req: req) {
             switch e.method {
             case .email(let address):
-                return PasswordReset(email: address, error: e.message)
+                return PasswordReset(postTo: postTo,
+                                     joinPath: joinPath,
+                                     signInPath: signInPath,
+                                     email: address,
+                                     error: e.message)
             default:
                 break
             }
         }
-        return PasswordReset()
+        return PasswordReset(postTo: postTo,
+                             joinPath: joinPath,
+                             signInPath: signInPath)
     }
 }
 
@@ -164,9 +189,9 @@ extension ViewController {
         
         init(email: String,
              isNewUser: Bool,
-             postTo: String = ViewController.passwordUpdatePath(),
+             postTo: String,
              state: String? = nil,
-             signInPath: String = ViewController.signInPath(),
+             signInPath: String,
              error: String? = nil) {
             self.email = email
             self.isNewUser = isNewUser
@@ -185,15 +210,21 @@ extension ViewController {
                                            state: String? = nil,
                                            isDeleted: Bool = false,
                                            req: Request) -> PasswordUpdateView {
+        let postTo = ViewController.passwordUpdatePath()
+        let signInPath = ViewController.signInPath()
         if let e = try? Self.exception(isDeleted: isDeleted, req: req) {
             return PasswordUpdate(email: email,
                                   isNewUser: isNewUser,
+                                  postTo: postTo,
                                   state: state,
+                                  signInPath: signInPath,
                                   error: e.message)
         }
         return PasswordUpdate(email: email,
                               isNewUser: isNewUser,
-                              state: state)
+                              postTo: postTo,
+                              state: state,
+                              signInPath: signInPath)
     }
 }
 

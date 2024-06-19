@@ -11,6 +11,7 @@ extension UserController {
     public static func configure(app: Application) throws {
         // Migrations
         app.migrations.add(User.Migration())
+        app.migrations.add(UserToken.Migration())
     }
 }
 

@@ -2,7 +2,7 @@ import Vapor
 import Fluent
 import JWT
 
-public struct GoogleController {
+public struct GoogleController: Sendable {
     public init() { }
     
     struct GoogleAuthResponse: Content {

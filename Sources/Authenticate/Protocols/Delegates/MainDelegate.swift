@@ -1,7 +1,7 @@
 import Vapor
 import Fluent
 
-public protocol MainControllerSource {
+public protocol MainDelegate {    
     static func createUser(_ method: AuthenticationMethod, on: Database) async throws -> any UserAuthenticatable
     
     static func user(_ method: AuthenticationMethod, on: Database) async throws -> (any UserAuthenticatable)?
@@ -21,6 +21,8 @@ public protocol UserAuthenticatable: Authenticatable, ModelAuthenticatable {
     func set(_ method: AuthenticationMethod) throws -> any UserAuthenticatable
     
     func save(on db: Database) async throws
+    
+    func delete(force: Bool, on db: Database) async throws
 }
 
 public enum AuthenticationMethod: Codable {
