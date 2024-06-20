@@ -25,6 +25,7 @@ let package = Package(
                  targets: [
                     "Utilities"
                  ]),
+        .library(name: "YousniteLibrary", targets: ["YousniteLibrary"])
     ],
     dependencies: [
         .package(url: "https://github.com/vapor/vapor.git", from: "4.89.0"),
@@ -52,6 +53,7 @@ let package = Package(
                 dependencies: [
                     .product(name: "Vapor", package: "vapor"),
                 ]),
+        .target(name: "YousniteLibrary"),
         .testTarget(name: "YousniteLibraryTests",
                     dependencies: [
                         .product(name: "Vapor", package: "vapor"),
