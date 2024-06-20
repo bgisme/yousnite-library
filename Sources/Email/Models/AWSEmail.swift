@@ -1,6 +1,6 @@
 import Vapor
-import ClientRuntime
 import AWSSESv2
+//import SotoSES
 
 public struct AWSEmail {
     
