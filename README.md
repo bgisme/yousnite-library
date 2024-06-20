@@ -19,10 +19,10 @@ Add the `YousniteLibrary` product from the `yousnite-library` package as a depen
 Then import individual modules where necessary:
 ```swift
 import Authenticate
-import Email
+import Emails
 import NestRoute
 import SessionStorage
-import User
+import Users
 import Utilities
 import Validate
 ```

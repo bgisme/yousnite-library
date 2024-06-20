@@ -1,7 +1,6 @@
 import Vapor
 import Fluent
-import NestRoute
-import SessionStorage
+import Utilities
 
 public struct ViewController: Sendable {
     public init() { }
@@ -86,6 +85,8 @@ extension ViewController: RouteCollection {
         
         route.post(Self.appleRedirectRoute, use: appleRedirect)
         route.post(Self.googleRedirectRoute, use: googleRedirect)
+        
+//        route.post(Self.quitRoute, use: postQuit)
     }
     
     /// <form> with field for email to request join link
@@ -290,4 +291,13 @@ extension ViewController: RouteCollection {
         MainController.delegate.unauthenticate(isSessionEnd: true, req: req)
         return try await d.signOutDone(req: req)
     }
+
+    #warning("TODO: Add date field to user for quitAt... retain deleted users for short period of time")
+//    func quit(req: Request) async throws -> Response {
+//        guard let d = Self.delegate,
+//              let user = try MainController.delegate.authenticatedUser(req: req)
+//        else { throw Abort(.internalServerError) }
+//        try await MainController.delegate.delete(user, db: req.db)
+//        return try await d.quit(user: user, req: req)
+//    }
 }

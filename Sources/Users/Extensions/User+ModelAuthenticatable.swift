@@ -1,7 +1,6 @@
 import Vapor
 import Fluent
 
-
 extension User: ModelAuthenticatable {
     public static let usernameKey = \User.$email
     public static let passwordHashKey = \User.$value

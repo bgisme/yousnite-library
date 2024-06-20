@@ -1,6 +1,5 @@
 import Vapor
 import Fluent
-import Authenticate
 
 public struct UserController { 
     public init() {}

@@ -1,7 +1,6 @@
 import Fluent
 import Vapor
 import JWT
-import Authenticate
 
 final public class User: Model, Content, @unchecked Sendable {
     public static let schema = "users"

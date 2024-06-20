@@ -1,6 +1,5 @@
 import Vapor
 import Fluent
-import Authenticate
 
 extension User: UserAuthenticatable {
     public convenience init(_ method: AuthenticationMethod) throws {

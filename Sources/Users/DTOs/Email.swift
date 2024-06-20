@@ -1,5 +1,5 @@
 import Vapor
-import Validate
+import Utilities
 
 /// use for email join, sign in, password reset and update
 public struct Email: Content {

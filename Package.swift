@@ -11,37 +11,19 @@ let package = Package(
     ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
-        .library(name: "Utilities", targets: ["Utilities"]),
-        .library(name: "Validate", targets: ["Validate"]),
-        .library(name: "NestRoute", targets: ["NestRoute"]),
-        .library(name: "SessionStorage", targets: ["SessionStorage"]),
-        .library(name: "Authenticate",
+        .library(name: "Emails",
                  targets: [
-                    "Validate",
-                    "NestRoute",
-                    "SessionStorage",
-                    "Authenticate",
+                    "Users",
+                    "Emails",
                  ]),
-        .library(name: "Email",
-                 targets: [
-                    "Authenticate",
-                    "Email"]),
-        .library(name: "User",
-                 targets: [
-                    "Validate",
-                    "Authenticate",
-                    "User",
-                 ]),
-        .library(name: "YousniteLibrary",
+        .library(name: "Users",
                  targets: [
                     "Utilities",
-                    "Validate",
-                    "NestRoute",
-                    "SessionStorage",
-                    "Authenticate",
-                    "Email",
-                    "User",
-                    "YousniteLibrary",
+                    "Users",
+                 ]),
+        .library(name: "Utilities", 
+                 targets: [
+                    "Utilities"
                  ]),
     ],
     dependencies: [
@@ -53,57 +35,31 @@ let package = Package(
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
-        .target(name: "Utilities"),
-        .target(name: "Validate"),
-        .target(name: "NestRoute",
+        .target(name: "Emails",
                 dependencies: [
                     .product(name: "Vapor", package: "vapor"),
+                    .product(name: "AWSSESv2", package: "aws-sdk-swift"),
+                    "Users",
                 ]),
-        .target(name: "SessionStorage",
-                dependencies: [
-                    .product(name: "Vapor", package: "vapor"),
-                ]),
-        .target(name: "Authenticate",
+        .target(name: "Users",
                 dependencies: [
                     .product(name: "Vapor", package: "vapor"),
                     .product(name: "Fluent", package: "fluent"),
                     .product(name: "JWT", package: "jwt"),
-                    "NestRoute",
-                    "Validate",
-                    "SessionStorage",
-                ]),
-        .target(name: "Email",
-               dependencies: [
-                .product(name: "Vapor", package: "vapor"),
-                .product(name: "AWSSESv2", package: "aws-sdk-swift"),
-                "Authenticate",
-               ]),
-        .target(name: "User",
-                dependencies: [
-                    .product(name: "Vapor", package: "vapor"),
-                    .product(name: "Fluent", package: "fluent"),
-                    .product(name: "JWT", package: "jwt"),
-                    "Validate",
-                    "Authenticate",
-                ]),
-        .target(name: "YousniteLibrary",
-                dependencies: [
                     "Utilities",
-                    "Validate",
-                    "NestRoute",
-                    "SessionStorage",
-                    "Email",
-                    "Authenticate",
-                    "User",
+                ]),
+        .target(name: "Utilities",
+                dependencies: [
+                    .product(name: "Vapor", package: "vapor"),
                 ]),
         .testTarget(name: "YousniteLibraryTests",
                     dependencies: [
+                        .product(name: "Vapor", package: "vapor"),
+                        .product(name: "Fluent", package: "fluent"),
+                        .product(name: "JWT", package: "jwt"),
+                        "Emails",
+                        "Users",
                         "Utilities",
-                        "Validate",
-                        "NestRoute",
-                        "SessionStorage",
-                        "Authenticate",
-                        "User",
                     ]),
     ]
 )

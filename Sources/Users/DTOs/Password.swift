@@ -1,5 +1,5 @@
 import Vapor
-import Validate
+import Utilities
 
 public struct Password: Content {
     public static let minPasswordLength = 11

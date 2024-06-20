@@ -1,5 +1,4 @@
 import Foundation
-import Validate
 import Utilities
 
 public struct ZipCode: Codable {

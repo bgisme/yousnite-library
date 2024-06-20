@@ -1,5 +1,3 @@
-import Authenticate
-
 extension User.AuthenticationType {
     public init(_ method: AuthenticationMethod) {
         switch method {

@@ -1,6 +1,5 @@
 import Vapor
 import Fluent
-import Authenticate
 
 // MARK: - MainDelegate
 extension User: MainDelegate {
