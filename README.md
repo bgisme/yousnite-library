@@ -18,13 +18,9 @@ Add the `YousniteLibrary` product from the `yousnite-library` package as a depen
 
 Then import individual modules where necessary:
 ```swift
-import Authenticate
-import Emails
-import NestRoute
-import SessionStorage
+import Email
 import Users
 import Utilities
-import Validate
 ```
 
 ## Xcode Environment Variables

@@ -17,6 +17,8 @@ extension MainController {
                                  viewDelegate: ViewDelegate.Type) throws {
         self.delegate = delegate
         
+        try UserController.configure(app: app)
+        
         /// configure sources
         try AppleController.configure()
         try EmailController.configure(app: app,
