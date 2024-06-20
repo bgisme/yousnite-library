@@ -62,6 +62,26 @@ public struct AWSEmail {
                      cc ccAddresses: [String] = [],
                      from sender: String?,
                      subject: String) async throws -> String? {
+// Send with Soto Library
+//        let c = AWSClient(credentialProvider: .environment,
+//                          retryPolicy: .default,
+//                          middlewares: [],
+//                          options: .init(),
+//                          httpClientProvider: .createNew,
+//                          logger: .init(label: "yousnite"))
+//        let ses = SES(client: c,
+//                      partition: .aws,
+//                      byteBufferAllocator: <#T##ByteBufferAllocator#>,
+//                      options: .calculateMD5)
+//        let d = SES.Destination(ccAddresses: ccAddresses, toAddresses: toAddresses)
+//        try await ses.sendEmail(.init(destination: d,
+//                                      message: <#T##SES.Message#>,
+//                                      replyToAddresses: <#T##[String]?#>,
+//                                      returnPath: <#T##String?#>,
+//                                      returnPathArn: <#T##String?#>,
+//                                      source: <#T##String#>,
+//                                      sourceArn: <#T##String?#>,
+//                                      tags: <#T##[SES.MessageTag]?#>))
         let region = "us-east-1"
         let client = try SESv2Client(region: region)
         let body = SESv2ClientTypes.Body(html: .init(charset: "UTF-8",
