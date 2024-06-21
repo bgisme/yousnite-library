@@ -1,5 +1,5 @@
 import Vapor
-import AWSSESv2
+//import AWSSESv2
 //import SotoSES
 
 public struct AWSEmail {
@@ -62,74 +62,55 @@ public struct AWSEmail {
                      cc ccAddresses: [String] = [],
                      from sender: String?,
                      subject: String) async throws -> String? {
-// Send with Soto Library
-//        let c = AWSClient(credentialProvider: .environment,
-//                          retryPolicy: .default,
-//                          middlewares: [],
-//                          options: .init(),
-//                          httpClientProvider: .createNew,
-//                          logger: .init(label: "yousnite"))
-//        let ses = SES(client: c,
-//                      partition: .aws,
-//                      byteBufferAllocator: <#T##ByteBufferAllocator#>,
-//                      options: .calculateMD5)
-//        let d = SES.Destination(ccAddresses: ccAddresses, toAddresses: toAddresses)
-//        try await ses.sendEmail(.init(destination: d,
-//                                      message: <#T##SES.Message#>,
-//                                      replyToAddresses: <#T##[String]?#>,
-//                                      returnPath: <#T##String?#>,
-//                                      returnPathArn: <#T##String?#>,
-//                                      source: <#T##String#>,
-//                                      sourceArn: <#T##String?#>,
-//                                      tags: <#T##[SES.MessageTag]?#>))
-        let region = "us-east-1"
-        let client = try SESv2Client(region: region)
-        let body = SESv2ClientTypes.Body(html: .init(charset: "UTF-8",
-                                                     data: self.content))
-        let message = SESv2ClientTypes.Message(body: body,
-                                               subject: .init(charset: "UTF-8", data: subject))
-        // email addresses must be already validated by AWS
-        let destination = SESv2ClientTypes.Destination(ccAddresses: ccAddresses,
-                                                       toAddresses: toAddresses)
-        let emailTag = SESv2ClientTypes.MessageTag(name: "tag-name", value: "tag-value")
-        let fromEmailAddress = "\"\(sender ?? "Yousnite.com")\" <noreply@yousnite.com>"
-        let input = SendEmailInput(configurationSetName: "yousnite-noreply-configuration-set",
-                                   content: .init(simple: message),
-                                   destination: destination,
-                                   emailTags: [emailTag],
-                                   feedbackForwardingEmailAddress: "feedback@yousnite.com",
-                                   feedbackForwardingEmailAddressIdentityArn: "arn:aws:ses:us-east-1:173199359945:identity/feedback@yousnite.com",
-                                   fromEmailAddress: fromEmailAddress,
-                                   fromEmailAddressIdentityArn: "arn:aws:ses:us-east-1:173199359945:identity/noreply@yousnite.com",
-                                   listManagementOptions: nil,
-                                   replyToAddresses: [fromEmailAddress])
-        do {
-            let output = try await client.sendEmail(input: input)
-            return output.messageId
-        } catch let error as AccountSuspendedException {
-            /// The message can't be sent because the account's ability to send email has been permanently restricted.
-            throw Exception.init("Account Suspended", error.message)
-        } catch let error as BadRequestException {
-            /// The input you provided is invalid.
-            throw Exception.init("Bad Request", error.message)
-        } catch let error as LimitExceededException {
-            /// There are too many instances of the specified resource type.
-            throw Exception.init("Limit Exceeded", error.message)
-        } catch let error as MailFromDomainNotVerifiedException {
-            /// The message can't be sent because the sending domain isn't verified.
-            throw Exception.init("Mail From Domain Not Verified", error.message)
-        } catch let error as MessageRejected {
-            /// The message can't be sent because it contains invalid content.
-            throw Exception.init("Message Rejected", error.message)
-        } catch let error as NotFoundException {
-            /// The resource you attempted to access doesn't exist.
-            throw Exception.init("Not Found", error.message)
-        } catch let error as SendingPausedException {
-            /// The message can't be sent because the account's ability to send email is currently paused.
-            throw Exception.init("Sending Paused", error.message)
-        } catch let error as TooManyRequestsException {
-            throw Exception.init("Too Many Requests", error.message)
-        }
+//        let region = "us-east-1"
+//        let client = try SESv2Client(region: region)
+//        let body = SESv2ClientTypes.Body(html: .init(charset: "UTF-8",
+//                                                     data: self.content))
+//        let message = SESv2ClientTypes.Message(body: body,
+//                                               subject: .init(charset: "UTF-8", data: subject))
+//        // email addresses must be already validated by AWS
+//        let destination = SESv2ClientTypes.Destination(ccAddresses: ccAddresses,
+//                                                       toAddresses: toAddresses)
+//        let emailTag = SESv2ClientTypes.MessageTag(name: "tag-name", value: "tag-value")
+//        let fromEmailAddress = "\"\(sender ?? "Yousnite.com")\" <noreply@yousnite.com>"
+//        let input = SendEmailInput(configurationSetName: "yousnite-noreply-configuration-set",
+//                                   content: .init(simple: message),
+//                                   destination: destination,
+//                                   emailTags: [emailTag],
+//                                   feedbackForwardingEmailAddress: "feedback@yousnite.com",
+//                                   feedbackForwardingEmailAddressIdentityArn: "arn:aws:ses:us-east-1:173199359945:identity/feedback@yousnite.com",
+//                                   fromEmailAddress: fromEmailAddress,
+//                                   fromEmailAddressIdentityArn: "arn:aws:ses:us-east-1:173199359945:identity/noreply@yousnite.com",
+//                                   listManagementOptions: nil,
+//                                   replyToAddresses: [fromEmailAddress])
+//        do {
+//            let output = try await client.sendEmail(input: input)
+//            return output.messageId
+//        } catch let error as AccountSuspendedException {
+//            /// The message can't be sent because the account's ability to send email has been permanently restricted.
+//            throw Exception.init("Account Suspended", error.message)
+//        } catch let error as BadRequestException {
+//            /// The input you provided is invalid.
+//            throw Exception.init("Bad Request", error.message)
+//        } catch let error as LimitExceededException {
+//            /// There are too many instances of the specified resource type.
+//            throw Exception.init("Limit Exceeded", error.message)
+//        } catch let error as MailFromDomainNotVerifiedException {
+//            /// The message can't be sent because the sending domain isn't verified.
+//            throw Exception.init("Mail From Domain Not Verified", error.message)
+//        } catch let error as MessageRejected {
+//            /// The message can't be sent because it contains invalid content.
+//            throw Exception.init("Message Rejected", error.message)
+//        } catch let error as NotFoundException {
+//            /// The resource you attempted to access doesn't exist.
+//            throw Exception.init("Not Found", error.message)
+//        } catch let error as SendingPausedException {
+//            /// The message can't be sent because the account's ability to send email is currently paused.
+//            throw Exception.init("Sending Paused", error.message)
+//        } catch let error as TooManyRequestsException {
+//            throw Exception.init("Too Many Requests", error.message)
+//        }
+        return nil
     }
     
     public struct Exception: Error, LocalizedError {
