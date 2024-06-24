@@ -30,9 +30,6 @@ extension MainController {
         app.jwt.apple.applicationIdentifier = AppleController.servicesId
         let signer = try JWTSigner.es256(key: .private(pem: AppleController.jwkKey))
         app.jwt.signers.use(signer, kid: .init(string: AppleController.jwkId), isDefault: false)
-        
-        // migrations
-        app.migrations.add(PasswordToken.Migration())
     }
 }
 
