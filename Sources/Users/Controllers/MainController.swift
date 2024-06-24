@@ -32,8 +32,6 @@ extension MainController {
         app.jwt.signers.use(signer, kid: .init(string: AppleController.jwkId), isDefault: false)
         
         // migrations
-        app.migrations.add(User.Migration())
-        app.migrations.add(UserToken.Migration())
         app.migrations.add(PasswordToken.Migration())
     }
 }
