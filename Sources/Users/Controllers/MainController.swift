@@ -17,21 +17,24 @@ extension MainController {
                                  viewDelegate: ViewDelegate.Type) throws {
         self.delegate = delegate
         
-        try UserController.configure(app: app)
-        
         /// configure sources
         try AppleController.configure()
         try EmailController.configure(app: app,
                                       delegate: emailDelegate,
                                       sender: emailSender)
         try GoogleController.configure()
-        
+        try ViewController.configure(delegate: viewDelegate)
+        try UserController.configure(app: app)
+
         /// JWT
         app.jwt.apple.applicationIdentifier = AppleController.servicesId
         let signer = try JWTSigner.es256(key: .private(pem: AppleController.jwkKey))
         app.jwt.signers.use(signer, kid: .init(string: AppleController.jwkId), isDefault: false)
-
-        try ViewController.configure(delegate: viewDelegate)
+        
+        // migrations
+        app.migrations.add(User.Migration())
+        app.migrations.add(UserToken.Migration())
+        app.migrations.add(PasswordToken.Migration())
     }
 }
 
