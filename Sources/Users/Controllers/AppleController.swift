@@ -40,7 +40,7 @@ extension AppleController {
         self.servicesId = servicesId
         self.teamId = teamId
         self.jwkId = jwkId
-        self.jwkKey = jwkKey
+        self.jwkKey = jwkKey.addingCharacterReturnsAndLineFeeds()
     }
 }
 

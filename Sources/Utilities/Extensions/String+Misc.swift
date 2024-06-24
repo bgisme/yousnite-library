@@ -23,4 +23,10 @@ extension String {
         }
         return String(u)
     }
+    
+    public func addingCharacterReturnsAndLineFeeds() -> String {
+        let cr = String(Character(UnicodeScalar(13)))
+        let lf = String(Character(UnicodeScalar(10)))
+        return self.replacingOccurrences(of: "<CRLF>", with: cr+lf)
+    }
 }
