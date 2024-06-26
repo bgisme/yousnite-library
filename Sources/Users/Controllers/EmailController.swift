@@ -184,10 +184,13 @@ extension EmailController {
     static func sendEmail(_ kind: EmailKind,
                           to address: String,
                           req: Request) async throws {
+        #warning("REMOVE LOG LINE")
+        req.logger.info("sendEmail() to: \(address)")
         guard let d = Self.delegate else {
+            #warning("REMOVE LOG LINE")
+            req.logger.warning("EmailController delegate not set")
             throw Abort(.internalServerError)
         }
-        req.logger.info("sendEmail() to: \(address)")
         var result: String?
         var isSent: Bool = false
         do {
@@ -200,9 +203,13 @@ extension EmailController {
                 req.logger.info("createPasswordToken()")
                 try await createPasswordToken(state: state, email: address, result: result, db: req.db)
             case .passwordReset(let state, let path):
+                #warning("REMOVE LOG LINE")
+                req.logger.info("passwordReset \tstate: \(state) \tpath: \(path)")
                 result = try await d.emailPasswordReset(link: path, to: address, from: senderAddress, as: senderName)
                 try await createPasswordToken(state: state, email: address, result: result, db: req.db)
             case .passwordUpdated:
+                #warning("REMOVE LOG LINE")
+                req.logger.info("passwordUpdated")
                 result = try await d.emailPasswordUpdated(to: address, from: senderAddress, as: senderName)
             }
             isSent = true
