@@ -187,12 +187,17 @@ extension EmailController {
         guard let d = Self.delegate else {
             throw Abort(.internalServerError)
         }
+        req.logger.info("sendEmail() to: \(address)")
         var result: String?
         var isSent: Bool = false
         do {
             switch kind {
             case .invite(let state, let path):
+                #warning("REMOVE LOG LINE")
+                req.logger.info("invite \tstate: \(state) \tpath: \(path)")
                 result = try await d.emailInvite(link: path, to: address, from: senderAddress, as: senderName)
+                #warning("REMOVE LOG LINE")
+                req.logger.info("createPasswordToken()")
                 try await createPasswordToken(state: state, email: address, result: result, db: req.db)
             case .passwordReset(let state, let path):
                 result = try await d.emailPasswordReset(link: path, to: address, from: senderAddress, as: senderName)
@@ -205,7 +210,7 @@ extension EmailController {
             result = error.localizedDescription
         }
         #warning("REMOVE LOG LINE")
-        req.logger.info("sendEmail() \(result ?? "nil")")
+        req.logger.info("sendEmail() \tresult: \(result ?? "nil") \tisSent: \(isSent ? "true" : "false")")
         guard isSent else {
             throw Exception.unableToEmail(kind, to: address, error: result ?? "Unknown Error")
         }
