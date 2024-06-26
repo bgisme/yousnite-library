@@ -87,13 +87,14 @@ public struct AWSEmail {
                                            destination: destination,
                                            fromEmailAddress: fromEmailAddress)
         do {
+            print("EMAIL_FLAG: About to send email")
             let response: SESv2.SendEmailResponse = try await ses.sendEmail(email)
             result = response.messageId
             #warning("Eliminate Print Command")
-            print("EMAIL SENT: " + (result ?? ""))
+            print("EMAIL_FLAG: " + (result ?? ""))
         } catch let e as SESv2ErrorType {
             #warning("Eliminate Print Command")
-            print("EMAIL CRASHED:" + e.description)
+            print("EMAIL_FLAG:" + e.description)
         }
         try client.syncShutdown()
         return result
