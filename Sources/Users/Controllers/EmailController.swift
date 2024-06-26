@@ -82,6 +82,8 @@ extension EmailController {
         path += "/" + (state.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) ?? state)
         path += ViewController.isNewUserQueryParameter(isNewUser)
         let kind: EmailKind = isNewUser ? .invite(state: state, path: path) : .passwordReset(state: state, path: path)
+        #warning("REMOVE LOGGER LINE")
+        req.application.logger.info("REQUEST PASSWORD UPDATE... SEND EMAIL")
         try await Self.sendEmail(kind, to: email, req: req)
     }
         
@@ -202,6 +204,8 @@ extension EmailController {
         } catch {
             result = error.localizedDescription
         }
+        #warning("REMOVE LOG LINE")
+        req.logger.info("sendEmail() \(result ?? "nil")")
         guard isSent else {
             throw Exception.unableToEmail(kind, to: address, error: result ?? "Unknown Error")
         }
