@@ -89,8 +89,11 @@ public struct AWSEmail {
         do {
             let response: SESv2.SendEmailResponse = try await ses.sendEmail(email)
             result = response.messageId
+            #warning("Eliminate Print Command")
+            print("EMAIL SENT: " + (result ?? ""))
         } catch let e as SESv2ErrorType {
-            print(e.description)
+            #warning("Eliminate Print Command")
+            print("EMAIL CRASHED:" + e.description)
         }
         try client.syncShutdown()
         return result
