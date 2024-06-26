@@ -115,9 +115,14 @@ extension ViewController: RouteCollection {
     
     /// handles join and password-reset requests
     func postEmailRequest(req: Request) async throws -> Response {
+        #warning("REMOVE LOGGING LINES")
+        let log = req.application.logger
+        log.info("postEmailRequest()")
         guard let d = Self.delegate,
               let email = try? req.content.decode(Email.self).address
         else { throw Abort(.internalServerError) }
+        #warning("REMOVE LOGGING LINES")
+        log.info("email decoded: \(email)")
         let isNewUser: Bool = req.query[Self.isNewUserQueryKey] ?? false
         let response: Response
         do {
