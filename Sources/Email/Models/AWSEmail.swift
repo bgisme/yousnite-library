@@ -71,11 +71,19 @@ public struct AWSEmail {
                      from fromAddress: String,
                      as fromName: String? = nil,
                      subject: String) async throws -> String? {
+        #warning("REMOVE LOG LINE")
+        print("AWSEmail.send(to:cc:from:as:subject:)")
         var result: String?
         let client = AWSClient(credentialProvider: .static(accessKeyId: Self.accessKey, secretAccessKey: Self.secretAccessKey),
                                httpClientProvider: .createNew)
+        #warning("REMOVE LOG LINE")
+        print("SESv2(client: region:)")
         let ses = SESv2(client: client, region: .useast1)
+        #warning("REMOVE LOG LINE")
+        print("SESv2.EmailContent()")
         let content = SESv2.EmailContent(simple: .init(body: body, subject: .init(data: subject)))
+        #warning("REMOVE LOG LINE")
+        print("SESv2.Destination()")
         let destination = SESv2.Destination(ccAddresses: ccAddresses, toAddresses: toAddresses)
         var fromEmailAddress = fromAddress
         if let fromName = fromName {
@@ -83,6 +91,8 @@ public struct AWSEmail {
             fromEmailAddress = "\"" + fromName + "\" <" + fromEmailAddress + ">"
 //            let fromEmailAddress = "\"\(sender ?? "Yousnite.com")\" <noreply@yousnite.com>"
         }
+        #warning("REMOVE LOG LINE")
+        print("SESv2.SendEmailRequest(content:destination:fromEmailAddress:)")
         let email = SESv2.SendEmailRequest(content: content,
                                            destination: destination,
                                            fromEmailAddress: fromEmailAddress)

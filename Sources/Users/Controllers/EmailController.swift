@@ -82,8 +82,6 @@ extension EmailController {
         path += "/" + (state.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) ?? state)
         path += ViewController.isNewUserQueryParameter(isNewUser)
         let kind: EmailKind = isNewUser ? .invite(state: state, path: path) : .passwordReset(state: state, path: path)
-        #warning("REMOVE LOGGER LINE")
-        req.application.logger.info("REQUEST PASSWORD UPDATE... SEND EMAIL")
         try await Self.sendEmail(kind, to: email, req: req)
     }
         
@@ -184,11 +182,7 @@ extension EmailController {
     static func sendEmail(_ kind: EmailKind,
                           to address: String,
                           req: Request) async throws {
-        #warning("REMOVE LOG LINE")
-        req.logger.info("sendEmail() to: \(address)")
         guard let d = Self.delegate else {
-            #warning("REMOVE LOG LINE")
-            req.logger.warning("EmailController delegate not set")
             throw Abort(.internalServerError)
         }
         var result: String?
@@ -196,28 +190,18 @@ extension EmailController {
         do {
             switch kind {
             case .invite(let state, let path):
-                #warning("REMOVE LOG LINE")
-                req.logger.info("invite \tstate: \(state) \tpath: \(path)")
                 result = try await d.emailInvite(link: path, to: address, from: senderAddress, as: senderName)
-                #warning("REMOVE LOG LINE")
-                req.logger.info("createPasswordToken()")
                 try await createPasswordToken(state: state, email: address, result: result, db: req.db)
             case .passwordReset(let state, let path):
-                #warning("REMOVE LOG LINE")
-                req.logger.info("passwordReset \tstate: \(state) \tpath: \(path)")
                 result = try await d.emailPasswordReset(link: path, to: address, from: senderAddress, as: senderName)
                 try await createPasswordToken(state: state, email: address, result: result, db: req.db)
             case .passwordUpdated:
-                #warning("REMOVE LOG LINE")
-                req.logger.info("passwordUpdated")
                 result = try await d.emailPasswordUpdated(to: address, from: senderAddress, as: senderName)
             }
             isSent = true
         } catch {
             result = error.localizedDescription
         }
-        #warning("REMOVE LOG LINE")
-        req.logger.info("sendEmail() \tresult: \(result ?? "nil") \tisSent: \(isSent ? "true" : "false")")
         guard isSent else {
             throw Exception.unableToEmail(kind, to: address, error: result ?? "Unknown Error")
         }
