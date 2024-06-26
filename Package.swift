@@ -48,8 +48,7 @@ let package = Package(
         .package(url: "https://github.com/vapor/vapor.git", from: "4.89.0"),
         .package(url: "https://github.com/vapor/fluent.git", from: "4.8.0"),
         .package(url: "https://github.com/vapor/jwt.git", from: "4.0.0-rc"),
-//        .package(url: "https://github.com/awslabs/aws-sdk-swift", from: "0.32.0"),
-//        .package(url: "https://github.com/soto-project/soto.git", from: "6.0.0"),
+        .package(url: "https://github.com/soto-project/soto.git", from: "6.0.0")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -63,8 +62,7 @@ let package = Package(
         .target(name: "Email",
                 dependencies: [
                     .product(name: "Vapor", package: "vapor"),
-//                    .product(name: "AWSSESv2", package: "aws-sdk-swift"),
-//                    .product(name: "SotoSES", package: "soto"),
+                    .product(name: "SotoSESv2", package: "soto"),
                     "Users",
                 ]),
         .target(name: "Registration",

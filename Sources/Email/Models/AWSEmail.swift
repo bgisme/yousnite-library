@@ -1,22 +1,25 @@
 import Vapor
 //import AWSSESv2
-//import SotoSES
+import SotoSESv2
 
 public struct AWSEmail {
     
     public typealias Find = String
     public typealias Replace = String
-
-    public let content: String
     
-    public static func email(sender: String,
+    public static let accessKey: String = Environment.get("AWS_ACCESS_KEY")!
+    public static let secretAccessKey: String = Environment.get("AWS_SECRET_ACCESS_KEY")!
+    
+    public let body: SESv2.Body
+    
+    public static func email(from name: String,
                              instruction: String,
                              buttonTitle: String,
                              href: String,
                              disclaimer: String) throws -> AWSEmail {
         try .init("email_with_link.html",
                   replace: [
-                    ("##CLUB_NAME##", sender),
+                    ("##CLUB_NAME##", name),
                     ("##BUTTON_INSTRUCTION##", instruction),
                     ("##BUTTON_TITLE##", buttonTitle),
                     ("##BUTTON_HREF##", href),
@@ -24,12 +27,12 @@ public struct AWSEmail {
                   ])
     }
     
-    public static func email(sender: String,
+    public static func email(from name: String,
                              message: String,
                              disclaimer: String) throws -> AWSEmail {
         try .init("email_with_message.html",
                   replace: [
-                    ("##CLUB_NAME##", sender),
+                    ("##CLUB_NAME##", name),
                     ("##MESSAGE##", message),
                     ("##DISCLAIMER##", disclaimer)
                   ])
@@ -44,24 +47,54 @@ public struct AWSEmail {
     
     public init(_ fileURL: URL,
                 replace replacements: [(Find, Replace)] = []) throws {
-        var content = try String(contentsOf: fileURL, encoding: .utf8)
+        var body = try String(contentsOf: fileURL, encoding: .utf8)
         for r in replacements {
-            content = content.replacingOccurrences(of: r.0, with: r.1)
+            body = body.replacingOccurrences(of: r.0, with: r.1)
         }
-        self.content = content
+        self.body = .init(html: .init(data: body))
     }
     
     public func send(to toAddress: String,
                      cc ccAddresses: [String] = [],
-                     from sender: String?,
+                     from fromAddress: String,
+                     as name: String? = nil,
                      subject: String) async throws -> String? {
-        try await self.send(to: [toAddress], cc: ccAddresses, from: sender, subject: subject)
+        try await self.send(to: [toAddress], 
+                            cc: ccAddresses,
+                            from: fromAddress,
+                            as: name,
+                            subject: subject)
     }
     
     public func send(to toAddresses: [String],
                      cc ccAddresses: [String] = [],
-                     from sender: String?,
+                     from fromAddress: String,
+                     as fromName: String? = nil,
                      subject: String) async throws -> String? {
+        var result: String?
+        let client = AWSClient(credentialProvider: .static(accessKeyId: Self.accessKey, secretAccessKey: Self.secretAccessKey),
+                               httpClientProvider: .createNew)
+        let ses = SESv2(client: client, region: .useast1)
+        let content = SESv2.EmailContent(simple: .init(body: body, subject: .init(data: subject)))
+        let destination = SESv2.Destination(ccAddresses: ccAddresses, toAddresses: toAddresses)
+        var fromEmailAddress = fromAddress
+        if let fromName = fromName {
+            // format: "name" <email.address>
+            fromEmailAddress = "\"" + fromName + "\" <" + fromEmailAddress + ">"
+//            let fromEmailAddress = "\"\(sender ?? "Yousnite.com")\" <noreply@yousnite.com>"
+        }
+        let email = SESv2.SendEmailRequest(content: content,
+                                           destination: destination,
+                                           fromEmailAddress: fromEmailAddress)
+        do {
+            let response: SESv2.SendEmailResponse = try await ses.sendEmail(email)
+            result = response.messageId
+        } catch let e as SESv2ErrorType {
+            print(e.description)
+        }
+        try client.syncShutdown()
+        return result
+        
 //        let region = "us-east-1"
 //        let client = try SESv2Client(region: region)
 //        let body = SESv2ClientTypes.Body(html: .init(charset: "UTF-8",
@@ -110,7 +143,7 @@ public struct AWSEmail {
 //        } catch let error as TooManyRequestsException {
 //            throw Exception.init("Too Many Requests", error.message)
 //        }
-        return nil
+//        return nil
     }
     
     public struct Exception: Error, LocalizedError {

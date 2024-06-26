@@ -13,7 +13,8 @@ extension MainController {
     public static func configure(app: Application,
                                  delegate: MainDelegate.Type,
                                  emailDelegate: EmailDelegate.Type,
-                                 emailSender: String,
+                                 emailSenderAddress: String,
+                                 emailSenderName: String,
                                  viewDelegate: ViewDelegate.Type) throws {
         self.delegate = delegate
         
@@ -21,7 +22,8 @@ extension MainController {
         try AppleController.configure()
         try EmailController.configure(app: app,
                                       delegate: emailDelegate,
-                                      sender: emailSender)
+                                      senderAddress: emailSenderAddress,
+                                      senderName: emailSenderName)
         try GoogleController.configure()
         try ViewController.configure(delegate: viewDelegate)
         try UserController.configure(app: app)

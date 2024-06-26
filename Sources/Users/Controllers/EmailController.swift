@@ -8,17 +8,20 @@ public struct EmailController: Sendable {
 // MARK: - Configure
 extension EmailController {
     static var delegate: EmailDelegate.Type!
-    static var sender: String?
+    static var senderAddress: String!
+    static var senderName: String!
     
     public static func configure(app: Application,
                                  delegate: EmailDelegate.Type,
-                                 sender: String,
+                                 senderAddress: String,
+                                 senderName: String,
                                  joinRoute: [PathComponent] = Self.joinRoute,
                                  passwordResetRoute: [PathComponent] = Self.passwordResetRoute,
                                  passwordUpdateRoute: [PathComponent] = Self.passwordUpdateRoute) throws {
         // Class properties
         self.delegate = delegate
-        self.sender = sender
+        self.senderAddress = senderAddress
+        self.senderName = senderName
         self.joinRoute = joinRoute
         self.passwordResetRoute = passwordResetRoute
         self.passwordUpdateRoute = passwordUpdateRoute
@@ -179,9 +182,7 @@ extension EmailController {
     static func sendEmail(_ kind: EmailKind,
                           to address: String,
                           req: Request) async throws {
-        guard let d = Self.delegate,
-              let sender = Self.sender
-        else {
+        guard let d = Self.delegate else {
             throw Abort(.internalServerError)
         }
         var result: String?
@@ -189,13 +190,13 @@ extension EmailController {
         do {
             switch kind {
             case .invite(let state, let path):
-                result = try await d.emailInvite(link: path, to: address, from: sender)
+                result = try await d.emailInvite(link: path, to: address, from: senderAddress, as: senderName)
                 try await createPasswordToken(state: state, email: address, result: result, db: req.db)
             case .passwordReset(let state, let path):
-                result = try await d.emailPasswordReset(link: path, to: address, from: sender)
+                result = try await d.emailPasswordReset(link: path, to: address, from: senderAddress, as: senderName)
                 try await createPasswordToken(state: state, email: address, result: result, db: req.db)
             case .passwordUpdated:
-                result = try await d.emailPasswordUpdated(to: address, from: sender)
+                result = try await d.emailPasswordUpdated(to: address, from: senderAddress, as: senderName)
             }
             isSent = true
         } catch {

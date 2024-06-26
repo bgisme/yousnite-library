@@ -26,7 +26,7 @@ public protocol ViewDelegate {
     static func displayPasswordUpdate(input: PasswordUpdateView) -> Response
     
     static func passwordUpdateDone(req: Request) async throws -> Response
-    
+        
     static func sent(_ type: EmailType, email: String, req: Request) async throws -> Response
     
     static func fatalError(_ message: String, req: Request) async throws -> Response

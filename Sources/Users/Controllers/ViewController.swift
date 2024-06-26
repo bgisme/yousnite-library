@@ -121,7 +121,9 @@ extension ViewController: RouteCollection {
         let isNewUser: Bool = req.query[Self.isNewUserQueryKey] ?? false
         let response: Response
         do {
-            try await EmailController.requestPasswordUpdate(email: email, isNewUser: isNewUser, req: req)
+            try await EmailController.requestPasswordUpdate(email: email,
+                                                            isNewUser: isNewUser,
+                                                            req: req)
             response = try await d.sent(isNewUser ? .join : .passwordReset, email: email, req: req)
         } catch {
             Self.setException(error, method: .email(email), req: req)
