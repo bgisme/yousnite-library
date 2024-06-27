@@ -26,7 +26,7 @@ extension AppleController {
         return token
     }
     
-    public static func configure() throws {
+    public static func configure(app: Application) throws {
         guard
             let applicationId = Environment.get("APPLE_APP_ID"),
             let servicesId = Environment.get("SIWA_SERVICES_ID"),

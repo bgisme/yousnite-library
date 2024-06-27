@@ -7,21 +7,15 @@ public struct EmailController: Sendable {
 
 // MARK: - Configure
 extension EmailController {
-    static var delegate: EmailDelegate.Type!
-    static var senderAddress: String!
-    static var senderName: String!
+    static var delegate: EmailDelegate!
     
     public static func configure(app: Application,
-                                 delegate: EmailDelegate.Type,
-                                 senderAddress: String,
-                                 senderName: String,
+                                 delegate: some EmailDelegate,
                                  joinRoute: [PathComponent] = Self.joinRoute,
                                  passwordResetRoute: [PathComponent] = Self.passwordResetRoute,
                                  passwordUpdateRoute: [PathComponent] = Self.passwordUpdateRoute) throws {
         // Class properties
         self.delegate = delegate
-        self.senderAddress = senderAddress
-        self.senderName = senderName
         self.joinRoute = joinRoute
         self.passwordResetRoute = passwordResetRoute
         self.passwordUpdateRoute = passwordUpdateRoute
@@ -76,10 +70,10 @@ extension EmailController {
             throw isNewUser ? Exception.userExists(email: email) : Exception.noUser(email: email)
         }
         // make state value for password token
-        let state = Self.state()
+        let (state, urlEncodedState) = Self.state()
         // assemble email link with state value
         var path = isFromAPI ? "yousnite://password" : ViewController.passwordUpdatePath(isRelative: false)
-        path += "/" + (state.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) ?? state)
+        path += "/" + urlEncodedState
         path += ViewController.isNewUserQueryParameter(isNewUser)
         let kind: EmailKind = isNewUser ? .invite(state: state, path: path) : .passwordReset(state: state, path: path)
         try await Self.sendEmail(kind, to: email, req: req)
@@ -126,7 +120,7 @@ extension EmailController {
     
     private static func passwordToken(isAllDeleted: Bool = false, req: Request) async throws -> PasswordToken {
         // get state from request
-        guard let state = try? Self.state(req: req) else {
+        guard let (state, _) = try? Self.state(req: req) else {
             throw Abort(.internalServerError)
         }
         // fetch password token for state value
@@ -190,20 +184,33 @@ extension EmailController {
         do {
             switch kind {
             case .invite(let state, let path):
-                result = try await d.emailInvite(link: path, to: address, from: senderAddress, as: senderName)
-                try await createPasswordToken(state: state, email: address, result: result, db: req.db)
+                result = try await d.emailInvite(link: path,
+                                                 toAddress: address,
+                                                 req: req)
+                try await createPasswordToken(state: state, 
+                                              email: address,
+                                              result: result,
+                                              db: req.db)
             case .passwordReset(let state, let path):
-                result = try await d.emailPasswordReset(link: path, to: address, from: senderAddress, as: senderName)
-                try await createPasswordToken(state: state, email: address, result: result, db: req.db)
+                result = try await d.emailPasswordReset(link: path, 
+                                                        toAddress: address,
+                                                        req: req)
+                try await createPasswordToken(state: state, 
+                                              email: address,
+                                              result: result, 
+                                              db: req.db)
             case .passwordUpdated:
-                result = try await d.emailPasswordUpdated(to: address, from: senderAddress, as: senderName)
+                result = try await d.emailPasswordUpdated(toAddress: address,
+                                                          req: req)
             }
             isSent = true
         } catch {
             result = error.localizedDescription
         }
         guard isSent else {
-            throw Exception.unableToEmail(kind, to: address, error: result ?? "Unknown Error")
+            throw Exception.unableToEmail(kind, 
+                                          to: address,
+                                          error: result ?? "Unknown Error")
         }
     }
     
@@ -223,17 +230,23 @@ extension EmailController {
         return pt
     }
         
-    static func state(count: Int = 32, isURLEncoded: Bool = false) -> String {
+    typealias State = String
+    typealias URLEncodedState = String
+    
+    static func state(count: Int = 32) -> (State, URLEncodedState) {
         let state = [UInt8].random(count: count).base64
-        let urlEncodedState = state.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? state
-        return isURLEncoded ? urlEncodedState : state
+        return (state, urlEncodedState(state))
     }
     
-    static func state(req: Request) throws -> String {
+    static func state(req: Request) throws -> (State, URLEncodedState) {
         guard let state = req.parameters.get("state") else {
             throw Abort(.notFound)
         }
-        return state
+        return (state, urlEncodedState(state))
+    }
+    
+    private static func urlEncodedState(_ state: String) -> String {
+        state.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? state
     }
     
     static func email(for state: String, db: Database) async throws -> String {

@@ -1,17 +1,20 @@
+import Vapor
+
 public protocol EmailDelegate {
-    typealias Result = String
+    func emailInvite(link: String,
+                     toAddress: String,
+//                     from: String,
+//                     as: String,
+                     req: Request) async throws -> String?
     
-    static func emailInvite(link: String, 
-                            to: String,
-                            from: String,
-                            as: String) async throws -> Result?
+    func emailPasswordReset(link: String,
+                            toAddress: String,
+//                            from: String,
+//                            as: String,
+                            req: Request) async throws -> String?
     
-    static func emailPasswordReset(link: String, 
-                                   to: String,
-                                   from: String,
-                                   as: String) async throws -> Result?
-    
-    static func emailPasswordUpdated(to: String,
-                                     from: String,
-                                     as: String) async throws -> Result?
+    func emailPasswordUpdated(toAddress: String,
+//                              from: String,
+//                              as: String,
+                              req: Request) async throws -> String?
 }

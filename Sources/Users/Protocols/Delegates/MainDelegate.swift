@@ -1,16 +1,16 @@
 import Vapor
 import Fluent
 
-public protocol MainDelegate {    
-    static func createUser(_ method: AuthenticationMethod, on: Database) async throws -> any UserAuthenticatable
+public protocol MainDelegate: Sendable {    
+    func createUser(_ method: AuthenticationMethod, on: Database) async throws -> any UserAuthenticatable
     
-    static func user(_ method: AuthenticationMethod, on: Database) async throws -> (any UserAuthenticatable)?
+    func user(_ method: AuthenticationMethod, on: Database) async throws -> (any UserAuthenticatable)?
     
-    static func authenticatedUser(req: Request) throws -> (any UserAuthenticatable)?
+    func authenticatedUser(req: Request) throws -> (any UserAuthenticatable)?
     
-    static func authenticate(_ user: any UserAuthenticatable, req: Request) throws
+    func authenticate(_ user: any UserAuthenticatable, req: Request) throws
     
-    static func unauthenticate(isSessionEnd: Bool, req: Request)
+    func unauthenticate(isSessionEnd: Bool, req: Request)
 }
 
 public protocol UserAuthenticatable: Authenticatable, ModelAuthenticatable {

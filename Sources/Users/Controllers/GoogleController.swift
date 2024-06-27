@@ -29,7 +29,7 @@ public struct GoogleController: Sendable {
 extension GoogleController {
     static public private(set) var clientId = ""
     
-    static func configure() throws {
+    static func configure(app: Application) throws {
         guard
             let clientId = Environment.get("GOOGLE_CLIENT_ID")/*,
             let clientSecret = Environment.get("GOOGLE_CLIENT_SECRET")*/

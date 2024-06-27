@@ -8,24 +8,19 @@ public struct MainController: Sendable {
 
 // MARK: - Configure
 extension MainController {
-    public static var delegate: MainDelegate.Type!
+    public static var delegate: MainDelegate!
     
     public static func configure(app: Application,
-                                 delegate: MainDelegate.Type,
-                                 emailDelegate: EmailDelegate.Type,
-                                 emailSenderAddress: String,
-                                 emailSenderName: String,
-                                 viewDelegate: ViewDelegate.Type) throws {
+                                 delegate: some MainDelegate,
+                                 emailDelegate: some EmailDelegate,
+                                 viewDelegate: some ViewDelegate) throws {
         self.delegate = delegate
         
         /// configure sources
-        try AppleController.configure()
-        try EmailController.configure(app: app,
-                                      delegate: emailDelegate,
-                                      senderAddress: emailSenderAddress,
-                                      senderName: emailSenderName)
-        try GoogleController.configure()
-        try ViewController.configure(delegate: viewDelegate)
+        try AppleController.configure(app: app)
+        try EmailController.configure(app: app, delegate: emailDelegate)
+        try GoogleController.configure(app: app)
+        try ViewController.configure(app: app, delegate: viewDelegate)
         try UserController.configure(app: app)
 
         /// JWT

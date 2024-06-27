@@ -2,34 +2,34 @@ import Vapor
 import Fluent
 
 public protocol ViewDelegate {
-    static func displayJoin(state: String,
-                            email: EmailJoinView,
-                            apple: AppleView,
-                            google: GoogleView) -> Response
+    func displayJoin(state: String,
+                     email: EmailJoinView,
+                     apple: AppleView,
+                     google: GoogleView) -> Response
     
     /// user authenticated
-    static func joinDone(req: Request) async throws -> Response
+    func joinDone(req: Request) async throws -> Response
     
-    static func displaySignIn(state: String,
-                              email: EmailSignInView,
-                              apple: AppleView,
-                              google: GoogleView) -> Response
+    func displaySignIn(state: String,
+                       email: EmailSignInView,
+                       apple: AppleView,
+                       google: GoogleView) -> Response
     
     /// user authenticated
-    static func signInDone(req: Request) async throws -> Response
+    func signInDone(req: Request) async throws -> Response
     
     /// user unauthenticated
-    static func signOutDone(req: Request) async throws -> Response
+    func signOutDone(req: Request) async throws -> Response
     
-    static func displayPasswordReset(input: PasswordResetView) -> Response
+    func displayPasswordReset(input: PasswordResetView) -> Response
     
-    static func displayPasswordUpdate(input: PasswordUpdateView) -> Response
+    func displayPasswordUpdate(input: PasswordUpdateView) -> Response
     
-    static func passwordUpdateDone(req: Request) async throws -> Response
-        
-    static func sent(_ type: EmailType, email: String, req: Request) async throws -> Response
+    func passwordUpdateDone(req: Request) async throws -> Response
     
-    static func fatalError(_ message: String, req: Request) async throws -> Response
+    func sent(_ type: EmailType, email: String, req: Request) async throws -> Response
+    
+    func fatalError(_ message: String, req: Request) async throws -> Response
 }
 
 public enum EmailType: String {

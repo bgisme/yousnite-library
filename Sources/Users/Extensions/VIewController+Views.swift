@@ -206,13 +206,12 @@ extension ViewController {
     }
     
     static func passwordUpdateView(email: String,
-                                           isNewUser: Bool,
-                                           state: String? = nil,
-                                           isDeleted: Bool = false,
-                                           req: Request) -> PasswordUpdateView {
+                                   isNewUser: Bool,
+                                   state: String? = nil,
+                                   req: Request) -> PasswordUpdateView {
         let postTo = ViewController.passwordUpdatePath()
         let signInPath = ViewController.signInPath()
-        if let e = try? Self.exception(isDeleted: isDeleted, req: req) {
+        if let e = try? Self.exception(isDeleted: true, req: req) {
             return PasswordUpdate(email: email,
                                   isNewUser: isNewUser,
                                   postTo: postTo,
