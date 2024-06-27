@@ -121,8 +121,6 @@ extension ViewController: RouteCollection {
         let isNewUser: Bool = req.query[Self.isNewUserQueryKey] ?? false
         let response: Response
         do {
-            #warning("REMOVE LOG LINE")
-            req.application.logger.info("requestPasswordUpdate()")
             try await EmailController.requestPasswordUpdate(email: email,
                                                             isNewUser: isNewUser,
                                                             req: req)

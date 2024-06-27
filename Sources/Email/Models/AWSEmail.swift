@@ -71,106 +71,23 @@ public struct AWSEmail {
                      from fromAddress: String,
                      as fromName: String? = nil,
                      subject: String) async throws -> String? {
-        #warning("REMOVE LOG LINE")
-        print("AWSEmail.send(to:cc:from:as:subject:)")
         var result: String?
         let client = AWSClient(credentialProvider: .static(accessKeyId: Self.accessKey, secretAccessKey: Self.secretAccessKey),
                                httpClientProvider: .createNew)
-        #warning("REMOVE LOG LINE")
-        print("SESv2(client: region:)")
         let ses = SESv2(client: client, region: .useast1)
-        #warning("REMOVE LOG LINE")
-        print("SESv2.EmailContent()")
         let content = SESv2.EmailContent(simple: .init(body: body, subject: .init(data: subject)))
-        #warning("REMOVE LOG LINE")
-        print("SESv2.Destination()")
         let destination = SESv2.Destination(ccAddresses: ccAddresses, toAddresses: toAddresses)
         var fromEmailAddress = fromAddress
         if let fromName = fromName {
             // format: "name" <email.address>
             fromEmailAddress = "\"" + fromName + "\" <" + fromEmailAddress + ">"
-//            let fromEmailAddress = "\"\(sender ?? "Yousnite.com")\" <noreply@yousnite.com>"
         }
-        #warning("REMOVE LOG LINE")
-        print("SESv2.SendEmailRequest(content:destination:fromEmailAddress:)")
         let email = SESv2.SendEmailRequest(content: content,
                                            destination: destination,
                                            fromEmailAddress: fromEmailAddress)
-        do {
-            print("EMAIL_FLAG: About to send email")
-            let response: SESv2.SendEmailResponse = try await ses.sendEmail(email)
-            result = response.messageId
-            #warning("Eliminate Print Command")
-            print("EMAIL_FLAG: " + (result ?? ""))
-        } catch let e as SESv2ErrorType {
-            #warning("Eliminate Print Command")
-            print("EMAIL_FLAG:" + e.description)
-        }
+        let response: SESv2.SendEmailResponse = try await ses.sendEmail(email)
+        result = response.messageId
         try client.syncShutdown()
         return result
-        
-//        let region = "us-east-1"
-//        let client = try SESv2Client(region: region)
-//        let body = SESv2ClientTypes.Body(html: .init(charset: "UTF-8",
-//                                                     data: self.content))
-//        let message = SESv2ClientTypes.Message(body: body,
-//                                               subject: .init(charset: "UTF-8", data: subject))
-//        // email addresses must be already validated by AWS
-//        let destination = SESv2ClientTypes.Destination(ccAddresses: ccAddresses,
-//                                                       toAddresses: toAddresses)
-//        let emailTag = SESv2ClientTypes.MessageTag(name: "tag-name", value: "tag-value")
-//        let fromEmailAddress = "\"\(sender ?? "Yousnite.com")\" <noreply@yousnite.com>"
-//        let input = SendEmailInput(configurationSetName: "yousnite-noreply-configuration-set",
-//                                   content: .init(simple: message),
-//                                   destination: destination,
-//                                   emailTags: [emailTag],
-//                                   feedbackForwardingEmailAddress: "feedback@yousnite.com",
-//                                   feedbackForwardingEmailAddressIdentityArn: "arn:aws:ses:us-east-1:173199359945:identity/feedback@yousnite.com",
-//                                   fromEmailAddress: fromEmailAddress,
-//                                   fromEmailAddressIdentityArn: "arn:aws:ses:us-east-1:173199359945:identity/noreply@yousnite.com",
-//                                   listManagementOptions: nil,
-//                                   replyToAddresses: [fromEmailAddress])
-//        do {
-//            let output = try await client.sendEmail(input: input)
-//            return output.messageId
-//        } catch let error as AccountSuspendedException {
-//            /// The message can't be sent because the account's ability to send email has been permanently restricted.
-//            throw Exception.init("Account Suspended", error.message)
-//        } catch let error as BadRequestException {
-//            /// The input you provided is invalid.
-//            throw Exception.init("Bad Request", error.message)
-//        } catch let error as LimitExceededException {
-//            /// There are too many instances of the specified resource type.
-//            throw Exception.init("Limit Exceeded", error.message)
-//        } catch let error as MailFromDomainNotVerifiedException {
-//            /// The message can't be sent because the sending domain isn't verified.
-//            throw Exception.init("Mail From Domain Not Verified", error.message)
-//        } catch let error as MessageRejected {
-//            /// The message can't be sent because it contains invalid content.
-//            throw Exception.init("Message Rejected", error.message)
-//        } catch let error as NotFoundException {
-//            /// The resource you attempted to access doesn't exist.
-//            throw Exception.init("Not Found", error.message)
-//        } catch let error as SendingPausedException {
-//            /// The message can't be sent because the account's ability to send email is currently paused.
-//            throw Exception.init("Sending Paused", error.message)
-//        } catch let error as TooManyRequestsException {
-//            throw Exception.init("Too Many Requests", error.message)
-//        }
-//        return nil
-    }
-    
-    public struct Exception: Error, LocalizedError {
-        public let exception: String
-        public let message: String?
-        
-        public init(_ exception: String, _ message: String?) {
-            self.exception = exception
-            self.message = message
-        }
-        
-        public var errorDescription: String? {
-            "\(exception)\(message != nil ? ": \(message!)" : "")"
-        }
-    }
+    }    
 }
