@@ -78,7 +78,7 @@ extension EmailController {
         let kind: EmailKind = isNewUser ? .invite(state: state, path: path) : .passwordReset(state: state, path: path)
         try await Self.sendEmail(kind, to: email, req: req)
     }
-        
+    
     typealias User = any UserAuthenticatable
     typealias IsNew = Bool
     
@@ -91,6 +91,7 @@ extension EmailController {
         guard let p = try? req.content.decode(Password.self) else {
             throw Abort(.internalServerError)
         }
+        let emailKind: EmailKind
         if isUpdate {
             // user must be authenticated
             guard let u = try MainController.delegate.authenticatedUser(req: req) else {
@@ -98,9 +99,9 @@ extension EmailController {
             }
             user = u
             try await user
-                .set(.email(u.email, password: p.value))
+                .update(.email(u.email, password: p.value))
                 .save(on: req.db)
-            try await Self.sendEmail(.passwordUpdated, to: u.email, req: req)
+            emailKind = .passwordUpdated
         } else {
             // fetch password token
             let pt = try await passwordToken(isAllDeleted: true, req: req)
@@ -109,12 +110,18 @@ extension EmailController {
             // if user exists — update... if not — create
             let method = AuthenticationMethod.email(pt.email, password: p.value)
             if let u = try await MainController.delegate.user(method, on: req.db) {
+                try await u
+                    .update(method)
+                    .save(on: req.db)
                 user = u
+                emailKind = .passwordUpdated
             } else {
                 user = try await MainController.delegate.createUser(method, on: req.db)
                 isNew = true
+                emailKind = .joined(.email)
             }
         }
+        try await Self.sendEmail(emailKind, to: user.email, req: req)
         return (user, isNew)
     }
     
@@ -167,48 +174,51 @@ extension EmailController {
 extension EmailController {
     public enum EmailKind: Codable {
         case invite(state: String, path: String)
+        case joined(_ addressKind: AddressKind)
         case passwordReset(state: String, path: String)
         case passwordUpdated
     }
-    
+        
     static var expires: TimeInterval = 900
     
     static func sendEmail(_ kind: EmailKind,
                           to address: String,
                           req: Request) async throws {
-        guard let d = Self.delegate else {
-            throw Abort(.internalServerError)
-        }
         var result: String?
         var isSent: Bool = false
         do {
             switch kind {
             case .invite(let state, let path):
-                result = try await d.emailInvite(link: path,
-                                                 toAddress: address,
-                                                 req: req)
-                try await createPasswordToken(state: state, 
+                result = try await Self.delegate.emailInvite(link: path,
+                                                             toAddress: address,
+                                                             req: req)
+                try await createPasswordToken(state: state,
                                               email: address,
                                               result: result,
                                               db: req.db)
+            case .joined(let kind):
+                result = try await Self.delegate.emailJoined(toAddress: address,
+                                                             kind: kind,
+                                                             req: req)
             case .passwordReset(let state, let path):
-                result = try await d.emailPasswordReset(link: path, 
-                                                        toAddress: address,
-                                                        req: req)
-                try await createPasswordToken(state: state, 
+                result = try await Self.delegate.emailPasswordReset(link: path,
+                                                                    toAddress: address,
+                                                                    req: req)
+                try await createPasswordToken(state: state,
                                               email: address,
-                                              result: result, 
+                                              result: result,
                                               db: req.db)
             case .passwordUpdated:
-                result = try await d.emailPasswordUpdated(toAddress: address,
-                                                          req: req)
+                result = try await Self.delegate.emailPasswordUpdated(toAddress: address,
+                                                                      req: req)
             }
             isSent = true
         } catch {
             result = error.localizedDescription
+            req.logger.warning(.init(stringLiteral: error.localizedDescription))
         }
         guard isSent else {
-            throw Exception.unableToEmail(kind, 
+            throw Exception.unableToEmail(kind,
                                           to: address,
                                           error: result ?? "Unknown Error")
         }
@@ -229,7 +239,7 @@ extension EmailController {
         try await pt.save(on: db)
         return pt
     }
-        
+    
     typealias State = String
     typealias URLEncodedState = String
     
@@ -275,10 +285,10 @@ extension EmailController {
         case unableToEmail(_ kind: EmailKind, to: String, error: String)
         case passwordTokenInvalid
         case passwordTokenExpired(_ email: String)
-//        case inviteInvalid
-//        case inviteExpired(_ address: String)
-//        case passwordResetInvalid
-//        case passwordResetExpired
+        //        case inviteInvalid
+        //        case inviteExpired(_ address: String)
+        //        case passwordResetInvalid
+        //        case passwordResetExpired
     }
 }
 
@@ -297,10 +307,10 @@ extension EmailController.Exception: AbortError {
         case .unableToEmail: return .unauthorized
         case .passwordTokenInvalid: return .unauthorized
         case .passwordTokenExpired(_): return .unauthorized
-//        case .inviteInvalid: return .unauthorized
-//        case .inviteExpired: return .unauthorized
-//        case .passwordResetInvalid: return .unauthorized
-//        case .passwordResetExpired: return .unauthorized
+            //        case .inviteInvalid: return .unauthorized
+            //        case .inviteExpired: return .unauthorized
+            //        case .passwordResetInvalid: return .unauthorized
+            //        case .passwordResetExpired: return .unauthorized
         }
     }
     
@@ -319,6 +329,8 @@ extension EmailController.Exception: AbortError {
             switch kind {
             case .invite:
                 type = "invite"
+            case .joined:
+                type = "joined"
             case .passwordReset:
                 type = "passowrd reset"
             case .passwordUpdated:
@@ -327,10 +339,10 @@ extension EmailController.Exception: AbortError {
             return "Unable to email \(type) due to internal error."
         case .passwordTokenInvalid: return "Invalid password change."
         case .passwordTokenExpired(let email): return "Password change for \(email) expired."
-//        case .inviteInvalid: return "Invalid invitation."
-//        case .inviteExpired: return "Invitation has expired."
-//        case .passwordResetInvalid: return "Password reset is invalid."
-//        case .passwordResetExpired: return "Password reset has expired."
+            //        case .inviteInvalid: return "Invalid invitation."
+            //        case .inviteExpired: return "Invitation has expired."
+            //        case .passwordResetInvalid: return "Password reset is invalid."
+            //        case .passwordResetExpired: return "Password reset has expired."
         }
     }
 }

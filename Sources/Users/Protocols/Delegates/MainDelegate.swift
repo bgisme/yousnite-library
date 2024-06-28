@@ -18,7 +18,7 @@ public protocol UserAuthenticatable: Authenticatable, ModelAuthenticatable {
     
 //    init(_ method: AuthenticationMethod) throws   ...not sure why but this won't work
             
-    func set(_ method: AuthenticationMethod) throws -> any UserAuthenticatable
+    func update(_ method: AuthenticationMethod) throws -> any UserAuthenticatable
     
     func save(on db: Database) async throws
     

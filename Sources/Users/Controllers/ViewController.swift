@@ -100,8 +100,8 @@ extension ViewController: RouteCollection {
         let (apple, google) = Self.appleGoogleView(req: req)
         let email = Self.emailJoinView(isDeleted: true, req: req)
         // get response from source
-        let (state, urlEncodedState) = EmailController.state()
-        let response = Self.delegate.displayJoin(state: urlEncodedState, email: email, apple: apple, google: google)
+        let (state, _) = EmailController.state()
+        let response = Self.delegate.displayJoin(state: state, email: email, apple: apple, google: google)
         Self.setAuthenticationCookies(state: state, isJoin: true, response: response)
         return response
     }
@@ -185,8 +185,8 @@ extension ViewController: RouteCollection {
         }
         let (apple, google) = Self.appleGoogleView(req: req)
         let email = Self.emailSignInView(isDeleted: true, req: req)
-        let (state, urlEncodedState) = EmailController.state()
-        let response = Self.delegate.displaySignIn(state: urlEncodedState, email: email, apple: apple, google: google)
+        let (state, _) = EmailController.state()
+        let response = Self.delegate.displaySignIn(state: state, email: email, apple: apple, google: google)
         Self.setAuthenticationCookies(state: state, response: response)
         return response
     }
@@ -224,6 +224,7 @@ extension ViewController: RouteCollection {
             } else if isJoin {
                 let new = try await MainController.delegate.createUser(method, on: req.db)
                 try MainController.delegate.authenticate(new, req: req)
+                try await EmailController.sendEmail(.joined(.apple), to: email, req: req)
                 response = try await Self.delegate.joinDone(req: req)
             } else {
                 Self.setException("No registered account.", method: .apple, req: req)
@@ -264,6 +265,7 @@ extension ViewController: RouteCollection {
             } else if isJoin {
                 let new = try await MainController.delegate.createUser(method, on: req.db)
                 try MainController.delegate.authenticate(new, req: req)
+                try await EmailController.sendEmail(.joined(.google), to: email, req: req)
                 response = try await Self.delegate.joinDone(req: req)
             } else {
                 Self.setException("No registered account.", method: .google, req: req)

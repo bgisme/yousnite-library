@@ -35,8 +35,12 @@ public struct AWSEmailController: Sendable {
         let request = SESv2.SendEmailRequest(content: content,
                                            destination: destination,
                                            fromEmailAddress: fromEmailAddress)
-        let response: SESv2.SendEmailResponse = try await ses.sendEmail(request)
-        result = response.messageId
+        do {
+            let response = try await ses.sendEmail(request)
+            result = response.messageId
+        } catch {
+            result = error.localizedDescription
+        }
         try client.syncShutdown()
         return result
     }
