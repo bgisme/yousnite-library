@@ -225,5 +225,14 @@ extension ViewController {
                               state: state,
                               signInPath: signInPath)
     }
+    
+    struct PasswordUpdateInvalid: PasswordUpdateInvalidView {
+        let error: String
+    }
+    
+    static func passwordUpdateViewInvalid(_ message: String,
+                                          req: Request) -> PasswordUpdateInvalidView {
+        PasswordUpdateInvalid(error: message)
+    }
 }
 

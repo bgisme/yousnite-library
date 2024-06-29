@@ -4,3 +4,7 @@ public protocol PasswordUpdateView {
     var postTo: String { get }
     var error: String? { get }
 }
+
+public protocol PasswordUpdateInvalidView {
+    var error: String { get }
+}

@@ -74,9 +74,9 @@ extension ViewController: RouteCollection {
         /// join... new password after clicking email link
         /// reset... update password after clicking email link
         /// update... update password for authenticated user
-        route.get(Self.passwordUpdateRoute + [":state"], use: displayPasswordUpdate)
-        route.get(Self.passwordUpdateRoute, use: displayPasswordUpdate)
-        route.post(Self.passwordUpdateRoute + [":state"], use: postPasswordUpdate)  // called by email link
+        route.get(Self.passwordUpdateRoute + [":state"], use: displayPasswordUpdate)    // called by email link
+        route.get(Self.passwordUpdateRoute, use: displayPasswordUpdate)                 // called by email link
+        route.post(Self.passwordUpdateRoute + [":state"], use: postPasswordUpdate)
         route.post(Self.passwordUpdateRoute, use: postPasswordUpdate)               // called by authenticated user
         
         route.get(Self.signInRoute, use: displaySignIn)
@@ -101,7 +101,7 @@ extension ViewController: RouteCollection {
         let email = Self.emailJoinView(isDeleted: true, req: req)
         // get response from source
         let (state, _) = EmailController.state()
-        let response = Self.delegate.displayJoin(state: state, email: email, apple: apple, google: google)
+        let response = Self.delegate.join(state: state, email: email, apple: apple, google: google)
         Self.setAuthenticationCookies(state: state, isJoin: true, response: response)
         return response
     }
@@ -109,7 +109,7 @@ extension ViewController: RouteCollection {
     /// <form> with field for email to request password-reset link
     func displayPasswordResetRequest(req: Request) async throws -> Response {
         let input = Self.passwordResetView(isDeleted: true, req: req)
-        return Self.delegate.displayPasswordReset(input: input)
+        return Self.delegate.passwordChange(.reset(input: input))
     }
     
     /// handles join and password-reset requests
@@ -136,26 +136,30 @@ extension ViewController: RouteCollection {
     
     /// <form> with fields for password and confirm-password
     func displayPasswordUpdate(req: Request) async throws -> Response {
-        if let user = try MainController.delegate.authenticatedUser(req: req) {
-            // authenticated
-            let input = Self.passwordUpdateView(email: user.email,
-                                                isNewUser: false,
-                                                req: req)
-            return Self.delegate.displayPasswordUpdate(input: input)
-        } else {
-            // unauthenticated
-            do {
-                let (state, urlEncodedState) = try EmailController.state(req: req)
-                let email = try await EmailController.email(for: state, db: req.db)
+        do {
+            if let user = try MainController.delegate.authenticatedUser(req: req) {
+                // authenticated
+                let input = Self.passwordUpdateView(email: user.email,
+                                                    isNewUser: false,
+                                                    req: req)
+                return Self.delegate.passwordChange(.update(input: input, isNewUser: false))
+            } else {
+                // unauthenticated
+                guard 
+                    let (state, urlEncodedState) = try? EmailController.state(req: req),
+                    let email = try? await EmailController.email(for: state, db: req.db)
+                else {
+                    return Self.delegate.passwordChange(.updateInvalid(error: "Expired or unknown option.", isNewUser: true))
+                }
                 let isNewUser: Bool = req.query[Self.isNewUserQueryKey] ?? false
                 let input = Self.passwordUpdateView(email: email,
                                                     isNewUser: isNewUser,
                                                     state: urlEncodedState,
                                                     req: req)
-                return Self.delegate.displayPasswordUpdate(input: input)
-            } catch {
-                return try await Self.delegate.fatalError("Unauthorized password update.", req: req)
+                return Self.delegate.passwordChange(.update(input: input, isNewUser: true))
             }
+        } catch {
+            return try await Self.delegate.fatalError("Unauthorized password update.", req: req)
         }
     }
     
@@ -186,7 +190,7 @@ extension ViewController: RouteCollection {
         let (apple, google) = Self.appleGoogleView(req: req)
         let email = Self.emailSignInView(isDeleted: true, req: req)
         let (state, _) = EmailController.state()
-        let response = Self.delegate.displaySignIn(state: state, email: email, apple: apple, google: google)
+        let response = Self.delegate.signIn(state: state, email: email, apple: apple, google: google)
         Self.setAuthenticationCookies(state: state, response: response)
         return response
     }
