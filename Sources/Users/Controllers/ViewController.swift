@@ -92,7 +92,7 @@ extension ViewController: RouteCollection {
         route.post(Self.appleRedirectRoute, use: appleRedirect)
         route.post(Self.googleRedirectRoute, use: googleRedirect)
         
-        route.post(Self.quitRoute, use: postQuit)
+        route.get(Self.quitRoute, use: quit)
     }
     
     /// <form> with field for email to request join link
@@ -295,7 +295,7 @@ extension ViewController: RouteCollection {
     }
 
     #warning("TODO: Add date field to user for quitAt... reset random password... retain deleted users for short period of time")
-    func postQuit(req: Request) async throws -> Response {
+    func quit(req: Request) async throws -> Response {
         guard let user = try MainController.delegate.authenticatedUser(req: req) else {
             throw Abort(.internalServerError)
         }
