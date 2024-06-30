@@ -25,32 +25,32 @@ extension ViewController: RouteCollection {
     
     public static let joinRoute: [PathComponent] = ["join"]
     public static func joinPath(isRelative: Bool = true) -> String {
-        Self.path(isRelative: isRelative, appending: joinRoute)
+        path(isRelative: isRelative, appending: joinRoute)
     }
     
     public static let passwordResetRoute: [PathComponent] = ["password-reset"]
     public static func passwordResetPath(isRelative: Bool = true) -> String {
-        Self.path(isRelative: isRelative, appending: passwordResetRoute)
+        path(isRelative: isRelative, appending: passwordResetRoute)
     }
     
     public static let emailRequestRoute: [PathComponent] = ["email-request"]
     public static func emailRequestPath(isNewUser: Bool = false, isRelative: Bool = true) -> String {
-        Self.path(isRelative: isRelative, appending: emailRequestRoute) + isNewUserQueryParameter(isNewUser)
+        path(isRelative: isRelative, appending: emailRequestRoute) + isNewUserQueryParameter(isNewUser)
     }
     
     public static let passwordUpdateRoute: [PathComponent] = ["password-update"]
     public static func passwordUpdatePath(isRelative: Bool = true) -> String {
-        Self.path(isRelative: isRelative, appending: passwordUpdateRoute)
+        path(isRelative: isRelative, appending: passwordUpdateRoute)
     }
     
     public static let signInRoute: [PathComponent] = ["signin"]
     public static func signInPath(isRelative: Bool = true) -> String {
-        Self.path(isRelative: isRelative, appending: signInRoute)
+        path(isRelative: isRelative, appending: signInRoute)
     }
     
     public static let signOutRoute: [PathComponent] = ["signout"]
     public static func signOutPath(isRelative: Bool = true) -> String {
-        Self.path(isRelative: isRelative, appending: signOutRoute)
+        path(isRelative: isRelative, appending: signOutRoute)
     }
     
     public static let appleRedirectRoute: [PathComponent] = ["apple", "redirect"]
@@ -61,6 +61,11 @@ extension ViewController: RouteCollection {
     public static let googleRedirectRoute: [PathComponent] = ["google", "redirect"]
     public static var googleRedirectPath: String {
         path(isRelative: false, appending: googleRedirectRoute)
+    }
+    
+    public static let quitRoute: [PathComponent] = ["quit"]
+    public static func quitPath(isRelative: Bool = true) -> String {
+        path(isRelative: isRelative, appending: quitRoute)
     }
     
     public func boot(routes: RoutesBuilder) throws {
@@ -87,7 +92,7 @@ extension ViewController: RouteCollection {
         route.post(Self.appleRedirectRoute, use: appleRedirect)
         route.post(Self.googleRedirectRoute, use: googleRedirect)
         
-//        route.post(Self.quitRoute, use: postQuit)
+        route.post(Self.quitRoute, use: postQuit)
     }
     
     /// <form> with field for email to request join link
@@ -149,7 +154,7 @@ extension ViewController: RouteCollection {
                     let (state, urlEncodedState) = try? EmailController.state(req: req),
                     let email = try? await EmailController.email(for: state, db: req.db)
                 else {
-                    return Self.delegate.passwordChange(.updateInvalid(error: "Expired or unknown option.", isNewUser: true))
+                    return Self.delegate.passwordChange(.updateInvalid(error: "Option not available.", isNewUser: true))
                 }
                 let isNewUser: Bool = req.query[Self.isNewUserQueryKey] ?? false
                 let input = Self.passwordUpdateView(email: email,
@@ -289,12 +294,13 @@ extension ViewController: RouteCollection {
         return try await Self.delegate.signOutDone(req: req)
     }
 
-    #warning("TODO: Add date field to user for quitAt... retain deleted users for short period of time")
-//    func quit(req: Request) async throws -> Response {
-//        guard let d = Self.delegate,
-//              let user = try MainController.delegate.authenticatedUser(req: req)
-//        else { throw Abort(.internalServerError) }
-//        try await MainController.delegate.delete(user, db: req.db)
-//        return try await d.quit(user: user, req: req)
-//    }
+    #warning("TODO: Add date field to user for quitAt... reset random password... retain deleted users for short period of time")
+    func postQuit(req: Request) async throws -> Response {
+        guard let user = try MainController.delegate.authenticatedUser(req: req) else {
+            throw Abort(.internalServerError)
+        }
+        MainController.delegate.unauthenticate(isSessionEnd: true, req: req)
+        try await MainController.delegate.delete(user, req: req)
+        return try Self.delegate.userDeleted(req: req)
+    }
 }

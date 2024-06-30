@@ -11,6 +11,8 @@ public protocol MainDelegate: Sendable {
     func authenticate(_ user: any UserAuthenticatable, req: Request) throws
     
     func unauthenticate(isSessionEnd: Bool, req: Request)
+    
+    func delete(_ user: any UserAuthenticatable, req: Request) async throws
 }
 
 public protocol UserAuthenticatable: Authenticatable, ModelAuthenticatable {

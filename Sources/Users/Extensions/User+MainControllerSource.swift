@@ -25,4 +25,8 @@ extension UserController: MainDelegate {
         req.auth.logout(User.self)
         if isSessionEnd { req.session.destroy() }
     }
+    
+    public func delete(_ user: any UserAuthenticatable, req: Vapor.Request) async throws {
+        try await user.delete(on: req.db)
+    }
 }

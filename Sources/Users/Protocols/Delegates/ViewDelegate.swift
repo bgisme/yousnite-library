@@ -27,6 +27,8 @@ public protocol ViewDelegate {
     
     func sent(_ type: EmailType, email: String, req: Request) async throws -> Response
     
+    func userDeleted(req: Request) throws -> Response
+    
     func fatalError(_ message: String, req: Request) async throws -> Response
 }
 
