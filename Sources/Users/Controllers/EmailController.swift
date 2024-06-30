@@ -79,7 +79,7 @@ extension EmailController {
         try await Self.sendEmail(kind, to: email, req: req)
     }
     
-    typealias User = any UserAuthenticatable
+    typealias User = any UserIdentifiable
     typealias IsNew = Bool
     
     @discardableResult
@@ -174,43 +174,44 @@ extension EmailController {
 extension EmailController {
     public enum EmailKind: Codable {
         case invite(state: String, path: String)
-        case joined(_ addressKind: AddressKind)
+        case joined(_ AuthenticationKind: AuthenticationType)
         case passwordReset(state: String, path: String)
         case passwordUpdated
+        case quit(_ AuthenticationKind: AuthenticationType)
     }
         
     static var expires: TimeInterval = 900
     
     static func sendEmail(_ kind: EmailKind,
-                          to address: String,
+                          to toAddress: String,
                           req: Request) async throws {
         var result: String?
         var isSent: Bool = false
         do {
             switch kind {
             case .invite(let state, let path):
-                result = try await Self.delegate.emailInvite(link: path,
-                                                             toAddress: address,
-                                                             req: req)
+                let invite = EmailPurpose.invite(link: path, toAddress: toAddress)
+                result = try await Self.delegate.email(invite, req: req)
                 try await createPasswordToken(state: state,
-                                              email: address,
+                                              email: toAddress,
                                               result: result,
                                               db: req.db)
-            case .joined(let kind):
-                result = try await Self.delegate.emailJoined(toAddress: address,
-                                                             kind: kind,
-                                                             req: req)
+            case .joined(let type):
+                let join = EmailPurpose.joined(toAddress: toAddress, type: type)
+                result = try await Self.delegate.email(join, req: req)
             case .passwordReset(let state, let path):
-                result = try await Self.delegate.emailPasswordReset(link: path,
-                                                                    toAddress: address,
-                                                                    req: req)
+                let passwordReset = EmailPurpose.passwordReset(link: path, toAddress: toAddress)
+                result = try await Self.delegate.email(passwordReset, req: req)
                 try await createPasswordToken(state: state,
-                                              email: address,
+                                              email: toAddress,
                                               result: result,
                                               db: req.db)
             case .passwordUpdated:
-                result = try await Self.delegate.emailPasswordUpdated(toAddress: address,
-                                                                      req: req)
+                let update = EmailPurpose.passwordUpdated(toAddress: toAddress)
+                result = try await Self.delegate.email(update, req: req)
+            case .quit(let type):
+                let quit = EmailPurpose.quit(toAddress: toAddress, type: type)
+                result = try await Self.delegate.email(quit, req: req)
             }
             isSent = true
         } catch {
@@ -219,7 +220,7 @@ extension EmailController {
         }
         guard isSent else {
             throw Exception.unableToEmail(kind,
-                                          to: address,
+                                          to: toAddress,
                                           error: result ?? "Unknown Error")
         }
     }
@@ -335,6 +336,8 @@ extension EmailController.Exception: AbortError {
                 type = "passowrd reset"
             case .passwordUpdated:
                 type = "password updated"
+            case .quit:
+                type = "quit"
             }
             return "Unable to email \(type) due to internal error."
         case .passwordTokenInvalid: return "Invalid password change."

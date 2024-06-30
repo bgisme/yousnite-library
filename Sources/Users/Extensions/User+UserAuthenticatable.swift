@@ -7,7 +7,7 @@ extension User: UserAuthenticatable {
         try self.init(email: email, type: type, value: value)
     }
     
-    public func update(_ method: AuthenticationMethod) throws -> any UserAuthenticatable {
+    public func update(_ method: AuthenticationMethod) throws -> any UserIdentifiable {
         let (email, type, value) = Self.emailTypeValue(method)
         self.email = email
         self.type = type

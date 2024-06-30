@@ -43,14 +43,6 @@ final public class User: Model, Content, @unchecked Sendable {
     }
 }
 
-extension User {
-    public enum AuthenticationType: String, Codable {
-        case email
-        case apple
-        case google
-    }
-}
-
 // MARK: - Public Representation
 extension User {
     public struct Public: Content {
@@ -71,18 +63,17 @@ extension User {
 // MARK: - Utilities
 extension User {
     public static func find(_ method: AuthenticationMethod, in db: Database) async throws -> User? {
-        let type = AuthenticationType(method)
         switch method {
         case .apple(_, let id), .google(_, let id):
             return try await User
                 .query(on: db)
-                .filter(\.$type == type)
+                .filter(\.$type == method.type)
                 .filter(\.$value == id)
                 .first()
         case .email(let address, _):
             return try await User
                 .query(on: db)
-                .filter(\.$type == type)
+                .filter(\.$type == method.type)
                 .filter(\.$email == address)
                 .first()
         }

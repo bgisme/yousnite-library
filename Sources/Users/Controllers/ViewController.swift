@@ -301,6 +301,7 @@ extension ViewController: RouteCollection {
         }
         MainController.delegate.unauthenticate(isSessionEnd: true, req: req)
         try await MainController.delegate.delete(user, req: req)
+        try await EmailController.sendEmail(.quit(user.authenticationType), to: user.email, req: req)
         return try Self.delegate.userDeleted(req: req)
     }
 }
