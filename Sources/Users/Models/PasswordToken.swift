@@ -1,8 +1,7 @@
 import Vapor
 import Fluent
 
-/// Sole purpose of this class is to preserve a state value for email invitations and password resets
-final class PasswordToken: Model, Content {
+final class PasswordToken: Model, Content, @unchecked Sendable {
     static let schema = "password_tokens"
     
     @ID(key: .id) var id: UUID?
@@ -10,7 +9,6 @@ final class PasswordToken: Model, Content {
     @Field(key: "email") var email: String
     @Timestamp(key: "expires_at", on: .none) var expiresAt: Date?
     @Timestamp(key: "sent_at", on: .none) var sentAt: Date?
-    @OptionalField(key: "result") var result: String?
     
     init() {}
     
@@ -18,14 +16,12 @@ final class PasswordToken: Model, Content {
          state: String,
          email: String,
          expiresAfter: TimeInterval = 600,
-         isFailed: Bool = false,
-         result: String?) {
+         isFailed: Bool = false) {
         self.id = id
         self.state = state
         self.email = email
         self.expiresAt = Date().addingTimeInterval(expiresAfter)
         self.sentAt = !isFailed ? Date() : nil
-        self.result = result
     }
     
     var isExpired: Bool { expiresAt != nil ? expiresAt!.timeIntervalSinceNow < 0 : false }

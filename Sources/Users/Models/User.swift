@@ -7,14 +7,17 @@ final public class User: Model, Content, @unchecked Sendable {
     @ID(key: .id) public var id: UUID?
     @Field(key: "email") public var email: String
     @Enum(key: "type") public var type: AuthenticationType
-    @Field(key: "value") public var value: String   // id for apple + google, password_hash for email
+    @Field(key: "value") public private(set) var value: String   // id for apple + google, password_hash for email
+    @Timestamp(key: "joined_at", on: .create) public var joinedAt: Date?
+    @OptionalField(key: "unjoined_at") public var unjoinedAt: Date?
     
-    private static func passwordHash(_ password: String) throws -> String {
-        try Bcrypt.hash(password)
-    }
-    
-    public func setPassword(_ password: String) throws {
-        self.value = try Self.passwordHash(password)
+    public func setValue(_ value: String) throws {
+        switch type {
+        case .apple, .google:
+            self.value = value
+        case .email:
+            self.value = try Self.hash(value)
+        }
     }
     
     public init() { }
@@ -26,13 +29,16 @@ final public class User: Model, Content, @unchecked Sendable {
         self.id = id
         self.email = email
         self.type = type
-        self.value = type == .email ? try Self.passwordHash(value) : value
+        self.value = type == .email ? try Self.hash(value) : value
+        self.unjoinedAt = nil
     }
     
     public enum CodingKeys: CodingKey {
         case email
         case type
         case value
+        case joinedAt
+        case unjoinedAt
     }
     
     public init(from decoder: any Decoder) throws {
@@ -40,6 +46,15 @@ final public class User: Model, Content, @unchecked Sendable {
         self.email = try container.decode(String.self, forKey: .email)
         self.type = try container.decode(AuthenticationType.self, forKey: .type)
         self.value = try container.decode(String.self, forKey: .value)
+        self.joinedAt = try container.decode(Date.self, forKey: .joinedAt)
+        self.unjoinedAt = try container.decode(Date.self, forKey: .unjoinedAt)
+    }
+}
+
+// MARK: - Utilities
+extension User {
+    private static func hash(_ password: String) throws -> String {
+        try Bcrypt.hash(password)
     }
 }
 
@@ -62,20 +77,33 @@ extension User {
 
 // MARK: - Utilities
 extension User {
-    public static func find(_ method: AuthenticationMethod, in db: Database) async throws -> User? {
+    public static func find(_ method: AuthenticationMethod, in db: Database) async throws -> User {
+        let user: User?
         switch method {
         case .apple(_, let id), .google(_, let id):
-            return try await User
+            user = try await User
                 .query(on: db)
                 .filter(\.$type == method.type)
                 .filter(\.$value == id)
                 .first()
         case .email(let address, _):
-            return try await User
+            user = try await User
                 .query(on: db)
                 .filter(\.$type == method.type)
                 .filter(\.$email == address)
                 .first()
         }
+        guard let user = user else { throw Abort(.notFound) }
+        return user
+    }
+    
+    public static func type(_ email: String, in db: Database) async throws -> AuthenticationType {
+        guard let user = try await User
+            .query(on: db)
+            .filter(\.$email == email)
+            .first() else {
+            throw Abort(.notFound)
+        }
+        return user.type
     }
 }

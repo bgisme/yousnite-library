@@ -8,300 +8,197 @@ public struct ViewController: Sendable {
 
 // MARK: - Configure
 extension ViewController {
-    static var delegate: ViewDelegate!
+    static private(set) var delegate: ViewDelegate!
     
     public static func configure(app: Application,
+                                 routes: [PathComponent] = routes,
+                                 parentRouteCollection: NestedRouteCollection.Type?,
                                  delegate: some ViewDelegate) throws {
+        self.routes = routes
+        self.parentRouteCollection = parentRouteCollection
         self.delegate = delegate
     }
 }
 
+// MARK: - NestedRouteCollection
+extension ViewController: NestedRouteCollection {
+    public private(set) static var parentRouteCollection: NestedRouteCollection.Type?
+    public private(set) static var routes: [PathComponent] = []
+}
+
 // MARK: - RouteCollection
 extension ViewController: RouteCollection {
-    public static let isNewUserQueryKey = "new"
-    public static func isNewUserQueryParameter(_ isNewUser: Bool) -> String {
-        isNewUser ? "?\(isNewUserQueryKey)=true" : ""
-    }
-    
-    public static let joinRoute: [PathComponent] = ["join"]
-    public static func joinPath(isRelative: Bool = true) -> String {
-        path(isRelative: isRelative, appending: joinRoute)
-    }
-    
-    public static let passwordResetRoute: [PathComponent] = ["password-reset"]
-    public static func passwordResetPath(isRelative: Bool = true) -> String {
-        path(isRelative: isRelative, appending: passwordResetRoute)
-    }
-    
-    public static let emailRequestRoute: [PathComponent] = ["email-request"]
-    public static func emailRequestPath(isNewUser: Bool = false, isRelative: Bool = true) -> String {
-        path(isRelative: isRelative, appending: emailRequestRoute) + isNewUserQueryParameter(isNewUser)
-    }
-    
-    public static let passwordUpdateRoute: [PathComponent] = ["password-update"]
-    public static func passwordUpdatePath(isRelative: Bool = true) -> String {
-        path(isRelative: isRelative, appending: passwordUpdateRoute)
-    }
-    
-    public static let signInRoute: [PathComponent] = ["signin"]
-    public static func signInPath(isRelative: Bool = true) -> String {
-        path(isRelative: isRelative, appending: signInRoute)
-    }
-    
-    public static let signOutRoute: [PathComponent] = ["signout"]
-    public static func signOutPath(isRelative: Bool = true) -> String {
-        path(isRelative: isRelative, appending: signOutRoute)
-    }
-    
-    public static let appleRedirectRoute: [PathComponent] = ["apple", "redirect"]
-    public static var appleRedirectPath: String {
-        path(isRelative: false, appending: appleRedirectRoute)
-    }
-    
-    public static let googleRedirectRoute: [PathComponent] = ["google", "redirect"]
-    public static var googleRedirectPath: String {
-        path(isRelative: false, appending: googleRedirectRoute)
-    }
-    
-    public static let quitRoute: [PathComponent] = ["quit"]
-    public static func quitPath(isRelative: Bool = true) -> String {
-        path(isRelative: isRelative, appending: quitRoute)
-    }
+    public static let joinRoute: [PathComponent] = APIController.joinRoute
+    public static let passwordResetRoute: [PathComponent] = APIController.passwordResetRoute
+    public static let passwordSetRoute: [PathComponent] = APIController.passwordSetRoute
+    public static let signInRoute: [PathComponent] = APIController.signInRoute
+    public static let signOutRoute: [PathComponent] = APIController.signOutRoute
+    public static let unjoinRoute: [PathComponent] = APIController.unjoinRoute
     
     public func boot(routes: RoutesBuilder) throws {
-        let route = routes.grouped(Self.route)
+        routes.get(Self.joinRoute, use: displayJoin) // <form> for email address
+        routes.post(Self.joinRoute, use: postJoin)   // emails link with password-token
         
-        route.get(Self.joinRoute, use: displayJoinRequest)
-        route.get(Self.passwordResetRoute, use: displayPasswordResetRequest)
-        route.post(Self.emailRequestRoute, use: postEmailRequest)
+        routes.get(Self.passwordResetRoute, use: displayPasswordReset) // <form> for email address
+        routes.post(Self.passwordResetRoute, use: postPasswordReset) // emails link with password-token
+                
+        // called by join and reset email links with password-token
+        routes.get(Self.passwordSetRoute + [":\(APIController.passwordTokenKey)"], use: displayPasswordSet)
+        // authenticated user changing password
+        routes.get(Self.passwordSetRoute, use: displayPasswordSet)
         
-        /// password update handles...
-        /// join... new password after clicking email link
-        /// reset... update password after clicking email link
-        /// update... update password for authenticated user
-        route.get(Self.passwordUpdateRoute + [":state"], use: displayPasswordUpdate)    // called by email link
-        route.get(Self.passwordUpdateRoute, use: displayPasswordUpdate)                 // called by email link
-        route.post(Self.passwordUpdateRoute + [":state"], use: postPasswordUpdate)
-        route.post(Self.passwordUpdateRoute, use: postPasswordUpdate)               // called by authenticated user
+        // called for join, reset
+        routes.post(Self.passwordSetRoute + [":\(APIController.passwordTokenKey)"], use: postPasswordSet)
+        // called for update
+        routes.post(Self.passwordSetRoute, use: postPasswordSet)
+
+        routes.get(Self.signInRoute, use: displaySignIn)
+        routes.post(Self.signInRoute, use: postEmailSignIn)
         
-        route.get(Self.signInRoute, use: displaySignIn)
-        route.post(Self.signInRoute, use: postEmailSignIn)
+        routes.get(Self.signOutRoute, use: signOut)
         
-        route.get(Self.signOutRoute, use: signOut)
-        
-        route.post(Self.appleRedirectRoute, use: appleRedirect)
-        route.post(Self.googleRedirectRoute, use: googleRedirect)
-        
-        route.get(Self.quitRoute, use: quit)
+        routes.get(Self.unjoinRoute, use: unjoin)
     }
     
-    /// <form> with field for email to request join link
-    func displayJoinRequest(req: Request) async throws -> Response {
-        let user = try? MainController.delegate.authenticatedUser(req: req)
+    // <form> for email address
+    func displayJoin(req: Request) async throws -> Response {
+        // check if authenticated
+        let user = try? UserController.authenticatedUser(req: req)
         guard user == nil else {
-            return try await Self.delegate.joinDone(req: req)
+            return await Self.delegate.did(.join(req))
         }
-        // pull out display info
-        let (apple, google) = Self.appleGoogleView(req: req)
-        let email = Self.emailJoinView(isDeleted: true, req: req)
-        // get response from source
-        let (state, _) = EmailController.state()
-        let response = Self.delegate.join(state: state, email: email, apple: apple, google: google)
-        Self.setAuthenticationCookies(state: state, isJoin: true, response: response)
+        // errors from previous submit
+        let e = req.session.joinSignInError(isDeleted: true)
+        // display info
+        let (apple, google) = Self.appleGoogleView(appleError: e?.apple,
+                                                   googleError: e?.google)
+        let email = Self.emailJoinView(email: e?.address, error: e?.error)
+        // get response from delegate
+        let token = EmailController.token()
+        let response = await Self.delegate.will(.join(state: token, email: email, apple: apple, google: google))
+        UserController.setAuthenticationCookies(token: token, isJoin: true, response: response)
         return response
     }
     
-    /// <form> with field for email to request password-reset link
-    func displayPasswordResetRequest(req: Request) async throws -> Response {
-        let input = Self.passwordResetView(isDeleted: true, req: req)
-        return Self.delegate.passwordChange(.reset(input: input))
-    }
-    
-    /// handles join and password-reset requests
-    func postEmailRequest(req: Request) async throws -> Response {
-        guard let email = try? req.content.decode(Email.self).address
-        else { throw Abort(.internalServerError) }
-        let isNewUser: Bool = req.query[Self.isNewUserQueryKey] ?? false
+    // emails link with password-token
+    func postJoin(req: Request) async throws -> Response {
         let response: Response
         do {
-            try await EmailController.requestPasswordUpdate(email: email,
-                                                            isNewUser: isNewUser,
-                                                            req: req)
-            response = try await Self.delegate.sent(isNewUser ? .join : .passwordReset, email: email, req: req)
+            let address = try req.content.decode(Email.self).address
+            try await UserController.sendPasswordCreateResetLink(to: address,
+                                                                 isNewUser: true,
+                                                                 req: req)
+#warning("TODO: Figure out best way to display email error")
+            response = await Self.delegate.did(.email(.join, to: address, error: nil, req: req))
         } catch {
-            Self.setException(error, method: .email(email), req: req)
-            response = req.redirect(to: isNewUser ? Self.joinPath() : Self.passwordResetPath())
+            req.session.set(error)
+            response = req.redirect(to: UserController.joinPath())
         }
-        if isNewUser {
-            // clean up cookies
-            Self.deleteAuthenticationCookies(response)
-        }
+        // clean up cookies
+        UserController.deleteAuthenticationCookies(response)
         return response
     }
     
-    /// <form> with fields for password and confirm-password
-    func displayPasswordUpdate(req: Request) async throws -> Response {
+    // <form> for email address
+    func displayPasswordReset(req: Request) async throws -> Response {
+        let e = req.session.passwordResetError(isDeleted: true)
+        let input = Self.passwordResetView(email: e?.email, error: e?.message)
+        return await Self.delegate.will(.resetPassword(input: input))
+    }
+    
+    // emails link with password-token
+    func postPasswordReset(req: Request) async throws -> Response {
         do {
-            if let user = try MainController.delegate.authenticatedUser(req: req) {
-                // authenticated
-                let input = Self.passwordUpdateView(email: user.email,
-                                                    isNewUser: false,
-                                                    req: req)
-                return Self.delegate.passwordChange(.update(input: input, isNewUser: false))
-            } else {
-                // unauthenticated
-                guard 
-                    let (state, urlEncodedState) = try? EmailController.state(req: req),
-                    let email = try? await EmailController.email(for: state, db: req.db)
-                else {
-                    return Self.delegate.passwordChange(.updateInvalid(error: "Option not available.", isNewUser: true))
-                }
-                let isNewUser: Bool = req.query[Self.isNewUserQueryKey] ?? false
-                let input = Self.passwordUpdateView(email: email,
-                                                    isNewUser: isNewUser,
-                                                    state: urlEncodedState,
-                                                    req: req)
-                return Self.delegate.passwordChange(.update(input: input, isNewUser: true))
-            }
+            let address = try req.content.decode(Email.self).address
+            try await UserController.sendPasswordCreateResetLink(to: address,
+                                                                 isNewUser: false,
+                                                                 req: req)
+#warning("TODO: Figure out best way to display email error")
+            return await Self.delegate.did(.email(.passwordReset, to: address, error: nil, req: req))
         } catch {
-            return try await Self.delegate.fatalError("Unauthorized password update.", req: req)
+            req.session.set(error)
+            return req.redirect(to: UserController.passwordResetPath())
         }
     }
     
-    func postPasswordUpdate(req: Request) async throws -> Response {
+    // called by join and reset email links with password-token... and authenticated user changing password without password-token
+    func displayPasswordSet(req: Request) async throws -> Response {
         var isNewUser = false
+        var token: String?
+        var postTo: String?
+        var e = req.session.passwordSetError(isDeleted: true)
+        if e == nil {
+            do {
+                token = try await UserController.passwordToken(req: req,
+                                                               isURLEncoded: true,
+                                                               isNewUser: &isNewUser)
+                postTo = UserController.passwordSetPath(urlEncodedToken: token)
+            } catch {
+                req.session.set(error)
+                e = req.session.passwordSetError(isDeleted: true)
+            }
+        }
+        let input = Self.PasswordSetView(postTo: postTo,
+                                         isNewUser: isNewUser,
+                                         error: e?.message)
+        return await Self.delegate.will(.setPassword(input: input))
+    }
+    
+    // called after join, password reset with password-token... and update with authenticated user
+    func postPasswordSet(req: Request) async throws -> Response {
         do {
-            if let _ = try? MainController.delegate.authenticatedUser(req: req) {
-                // authenticated
-                try await EmailController.changePassword(isUpdate: true, req: req)
+            let password = try req.content.decode(Password.self).value
+            var isNewUser = true
+            try await UserController.setPassword(password, isNewUser: &isNewUser, req: req)
+            if isNewUser {
+                return await Self.delegate.did(.join(req))
             } else {
-                // unauthenticated
-                let (user, isNew) = try await EmailController.changePassword(req: req)
-                isNewUser = isNew
-                try MainController.delegate.authenticate(user, req: req)
+                return await Self.delegate.did(.setPassword(req))
             }
         } catch {
-            Self.setException(error, method: .email(), req: req)
-            return req.redirect(to: Self.passwordUpdatePath())
+            req.session.set(error)
+            return req.redirect(to: UserController.passwordSetPath())
         }
-        return try await isNewUser ? Self.delegate.joinDone(req: req) : Self.delegate.passwordUpdateDone(req: req)
     }
     
     // display sign-in page with options
     func displaySignIn(req: Request) async throws -> Response {
-        guard (try? MainController.delegate.authenticatedUser(req: req)) == nil else {
-            return try await Self.delegate.signInDone(req: req)
+        let user = try? UserController.authenticatedUser(req: req)
+        guard user == nil else {
+            return await Self.delegate.did(.signIn(req))
         }
-        let (apple, google) = Self.appleGoogleView(req: req)
-        let email = Self.emailSignInView(isDeleted: true, req: req)
-        let (state, _) = EmailController.state()
-        let response = Self.delegate.signIn(state: state, email: email, apple: apple, google: google)
-        Self.setAuthenticationCookies(state: state, response: response)
+        let e = req.session.joinSignInError(isDeleted: true)
+        let (apple, google) = Self.appleGoogleView(appleError: e?.apple, googleError: e?.google)
+        let email = Self.emailSignInView(email: e?.address, error: e?.error)
+        let token = EmailController.token()
+        let response = await Self.delegate.will(.signIn(state: token, email: email, apple: apple, google: google))
+        UserController.setAuthenticationCookies(token: token, response: response)
         return response
     }
     
     // email <form> submit on sign-in page
     func postEmailSignIn(req: Request) async throws -> Response {
-        let signIn = try req.content.decode(SignIn.self)
         do {
-            try await EmailController.signIn(signIn, req: req)
-            return try await Self.delegate.signInDone(req: req)
+            let signIn = try req.content.decode(SignIn.self)
+            try await UserController.signIn(signIn, req: req)
+            return await Self.delegate.did(.signIn(req))
         } catch {
-            Self.setException(error, method: .email(signIn.email.address), req: req)
-            return req.redirect(to: Self.signInPath())
+            req.session.set(error)
+            return req.redirect(to: UserController.signInPath())
         }
-    }
-    
-    // called by Apple
-    func appleRedirect(req: Request) async throws -> Response {
-        let response: Response
-        let authResponse = try AppleController.authResponse(req: req)
-        let token = try await AppleController.idToken(authResponse: authResponse, req: req)
-        guard
-            let cookieState = req.cookies[Self.appleCookieKey]?.string,
-            !cookieState.isEmpty,
-            cookieState == authResponse.state
-        else {
-            throw Abort(.unauthorized)
-        }
-        let isJoin = Self.isJoin(req: req)
-        if let email = token.email {
-            let method = AuthenticationMethod.apple(email: email, id: token.subject.value)
-            if let existing = try await MainController.delegate.user(method, on: req.db) {
-                try MainController.delegate.authenticate(existing, req: req)
-                response = try await Self.delegate.signInDone(req: req)
-            } else if isJoin {
-                let new = try await MainController.delegate.createUser(method, on: req.db)
-                try MainController.delegate.authenticate(new, req: req)
-                try await EmailController.sendEmail(.joined(.apple), to: email, req: req)
-                response = try await Self.delegate.joinDone(req: req)
-            } else {
-                Self.setException("No registered account.", method: .apple, req: req)
-                response = req.redirect(to: Self.path(appending: Self.signInRoute))
-            }
-        } else {
-            Self.setException("Sign In with Apple is not working.", method: .apple, req: req)
-            response = req.redirect(to: Self.path(appending: Self.signInRoute))
-        }
-        // clean up cookies
-        Self.deleteAuthenticationCookies(response)
-        return response
-    }
-    
-    // called by Google
-    func googleRedirect(_ req: Request) async throws -> Response {
-        let response: Response
-        // decode google response
-        let auth = try GoogleController.GoogleAuthResponse(req)
-        // compare state values and verify according to https://developers.google.com/identity/gsi/web/guides/verify-google-id-token
-        guard let info = try? await req.jwt.google.verify(auth.credential),
-              info.audience.value.first == GoogleController.clientId,
-              info.issuer == "accounts.google.com" || info.issuer == "https://accounts.google.com",
-              info.expires.value.timeIntervalSinceNow >= 0,
-              let state = req.cookies[Self.googleCookieKey]?.string,
-              state == info.nonce
-        else {
-            req.logger.warning("\(Self.googleCookieKey) does not exist or match")
-            throw Abort(.unauthorized)
-        }
-        let isJoin = Self.isJoin(req: req)
-        if let email = info.email {
-            // use Google subject as user identifier, not email which can change
-            let method = AuthenticationMethod.google(email: email, id: info.subject.value)
-            if let existing = try await MainController.delegate.user(method, on: req.db) {
-                try MainController.delegate.authenticate(existing, req: req)
-                response = try await Self.delegate.signInDone(req: req)
-            } else if isJoin {
-                let new = try await MainController.delegate.createUser(method, on: req.db)
-                try MainController.delegate.authenticate(new, req: req)
-                try await EmailController.sendEmail(.joined(.google), to: email, req: req)
-                response = try await Self.delegate.joinDone(req: req)
-            } else {
-                Self.setException("No registered account.", method: .google, req: req)
-                response = req.redirect(to: Self.path(appending: Self.signInRoute))
-            }
-        } else {
-            Self.setException("Sign In with Google is not working.", method: .google, req: req)
-            response = req.redirect(to: Self.path(appending: Self.signInRoute))
-        }
-        // clean up cookies
-        Self.deleteAuthenticationCookies(response)
-        return response
     }
     
     func signOut(req: Request) async throws -> Response {
-        MainController.delegate.unauthenticate(isSessionEnd: true, req: req)
-        return try await Self.delegate.signOutDone(req: req)
+        UserController.unauthenticate(isSessionEnd: true, req: req)
+        return await Self.delegate.did(.signOut(req))
     }
-
-    #warning("TODO: Add date field to user for quitAt... reset random password... retain deleted users for short period of time")
-    func quit(req: Request) async throws -> Response {
-        guard let user = try MainController.delegate.authenticatedUser(req: req) else {
-            throw Abort(.internalServerError)
+    
+    func unjoin(req: Request) async throws -> Response {
+        do {
+            try await UserController.unjoinAuthenticatedUser(req: req)
+        } catch {
+            req.session.set(error)
         }
-        MainController.delegate.unauthenticate(isSessionEnd: true, req: req)
-        try await MainController.delegate.delete(user, req: req)
-        try await EmailController.sendEmail(.quit(user.authenticationType), to: user.email, req: req)
-        return try Self.delegate.userDeleted(req: req)
+        return await Self.delegate.did(.unjoin(req))
     }
 }

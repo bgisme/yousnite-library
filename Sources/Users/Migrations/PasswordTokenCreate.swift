@@ -13,7 +13,6 @@ extension PasswordToken {
                 .field("email", .string, .required)
                 .field("expires_at", .datetime, .required)
                 .field("sent_at", .datetime)
-                .field("result", .string)
                 .create()
         }
         

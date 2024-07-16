@@ -28,7 +28,8 @@ import Utilities
 Include the following keys and values:
 
 ```
-BASE_URI
+BASE_WEB_URI
+BASE_APP_URI
 APPLE_APP_ID
 SIWA_SERVICES_ID
 APPLE_JWK_KEY       
@@ -57,7 +58,7 @@ let userRequired = api.grouped([
     User.authenticator(),           // via username + password... continues after fail
     User.guardMiddleware()          // fails if no user
 ])
-try userRequired.register(collection: Authenticate.MainController())
+try userRequired.register(collection: Authenticate.APIController())
 ```
 
 **STEP 3**
@@ -84,7 +85,7 @@ app.sessions.configuration = .init(cookieName: "cookie-name") { sessionID in
 In the `configure.swift` file, add...
 
 ```swift
-try Authenticate.MainController.configure(app: app,
+try Authenticate.APIController.configure(app: app,
                                           source: User.self,
                                           EmailDelegate: <any Protocol>,
                                           emailSender: <Name on emails>,
@@ -92,7 +93,7 @@ try Authenticate.MainController.configure(app: app,
 
 ```
 
-Other libraries, like `User` and `Email`, contain pre-made classes for `MainDelegate`, `EmailDelegate` and `ViewDelegate`. 
+Other libraries, like `User` and `Email`, contain pre-made classes for `APIDelegate`, `EmailDelegate` and `ViewDelegate`. 
 
 
 ## Ngrok
@@ -116,9 +117,10 @@ For example...
 Open Run supplied Arguments
 
 **STEP 2**
-• Paste full Ngrok address into field for 'BASE_URI'
-• For example... `https://8f22-71-247-25-109.ngrok-free.app`
-
+• Paste Ngrok address into field for 'BASE_WEB_URI'
+• For example... `8f22-71-247-25-109.ngrok-free.app`
+• Paste application address into field 'BASE_APP_URI'
+• For example... 'yousnite'
 
 ## Sign In With Apple (SIWA)
 

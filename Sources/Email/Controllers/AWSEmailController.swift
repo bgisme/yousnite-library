@@ -2,6 +2,7 @@ import Vapor
 import SotoSESv2
 
 public struct AWSEmailController: Sendable {
+    public init() { }
     
     public typealias Find = String
     public typealias Replace = String

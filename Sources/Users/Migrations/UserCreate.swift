@@ -12,9 +12,12 @@ extension User {
             try await database.schema(User.schema)
                 .id()
                 .field("email", .string, .required)
+                .unique(on: "email")
                 .field("type", .string, .required)
                 .unique(on: "email", "type")
                 .field("value", .string, .required)
+                .field("joined_at", .datetime, .required)
+                .field("unjoined_at", .datetime)
                 .create()
         }
 

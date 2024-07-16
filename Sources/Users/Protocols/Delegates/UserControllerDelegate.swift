@@ -1,12 +1,12 @@
 import Vapor
 import Fluent
 
-public protocol MainDelegate: Sendable {    
+public protocol UserControllerDelegate: Sendable {
     func createUser(_ method: AuthenticationMethod, on: Database) async throws -> any UserIdentifiable
     
-    func user(_ method: AuthenticationMethod, on: Database) async throws -> (any UserIdentifiable)?
+    func user(_ method: AuthenticationMethod, on: Database) async throws -> any UserIdentifiable
     
-    func authenticatedUser(req: Request) throws -> (any UserIdentifiable)?
+    func authenticatedUser(req: Request) throws -> any UserIdentifiable
     
     func authenticate(_ user: any UserIdentifiable, req: Request) throws
     
@@ -17,9 +17,7 @@ public protocol MainDelegate: Sendable {
 
 public protocol UserAuthenticatable: Authenticatable, ModelAuthenticatable {
     var email: String { get }
-    
-//    init(_ method: AuthenticationMethod) throws   ...not sure why but this won't work
-            
+                
     func update(_ method: AuthenticationMethod) throws -> any UserIdentifiable
     
     func save(on db: Database) async throws

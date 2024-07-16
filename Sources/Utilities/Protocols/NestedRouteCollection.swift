@@ -1,47 +1,49 @@
 import Vapor
 
 public protocol NestedRouteCollection: RouteCollection {
-    static var route: [PathComponent] { get }
-    static var nestedParent: NestedRouteCollection.Type? { get set }
-    static var nestedChildren: [NestedRouteCollection.Type] { get }
+    static var parentRouteCollection: NestedRouteCollection.Type? { get }
+    static var routes: [PathComponent] { get }
     
     // must make class or struct init public
     init()
 }
 
 extension NestedRouteCollection {
-    public func boot(routes: any RoutesBuilder,
-                     in parent: NestedRouteCollection) throws {
-        Self.nestedParent = type(of: parent)
-        try boot(routes: routes)
-        let childRoutes = routes.grouped(Self.route)
-        for child in Self.nestedChildren {
-            try child.init().boot(routes: childRoutes, in: self)
-        }
-    }
+    public typealias Key = String
+    public typealias Value = String
     
-    public static func path(isRelative: Bool = true, appending components: [PathComponent]? = nil) -> String {
-        (isRelative ? "/" : "") + (parentComponents(isRelative: isRelative) + (components ?? [])).map{$0.description}.joined(separator: "/")
-    }
-    
-    public static func parentComponents(isRelative: Bool) -> [PathComponent] {
-        var components = route
-        var parent = nestedParent
-        while parent != nil {
-            components = parent!.route + components
-            parent = parent?.nestedParent
+    public static func path(to childRoutes: [PathComponent] = [],
+                            isAbsolute: Bool = false,
+                            isToApp: Bool = false,
+                            appending: [String] = [],
+                            parameters: [(Key, Value)] = []) -> String {
+        var parentRoutes = [PathComponent]()
+        var p = parentRouteCollection
+        while p != nil {
+            parentRoutes = p!.routes + parentRoutes
+            p = p!.parentRouteCollection
         }
-        if !isRelative && parent == nil {
-            let baseUri = Environment.get("BASE_URI") ?? "localhost://"
-            components = [.init(stringLiteral: baseUri)] + components
+        var path = String()
+        if isAbsolute {
+            if isToApp {
+                path = Environment.get("BASE_APP_URI") ?? "UNKNOWN_BASE_APP_URI"
+            } else if let envURI = Environment.get("BASE_WEB_URI") {
+                path = "https://" + envURI + "/"
+            } else {
+                path = "localhost://"
+            }
+        } else {
+            path = "/"
         }
-        return components
-    }
-}
-
-extension RoutesBuilder {
-    public func register(nestedCollection: NestedRouteCollection,
-                         in parent: NestedRouteCollection) throws {
-        try nestedCollection.boot(routes: self, in: parent)
+        path += (parentRoutes + routes + childRoutes)
+            .map{$0.description}
+            .joined(separator: "/")
+        if !appending.isEmpty {
+            path += "/" + appending.joined(separator: "/")
+        }
+        if !parameters.isEmpty {
+            path += "?" + parameters.map{$0.0 + "=" + $0.1}.joined(separator: "&")
+        }
+        return path
     }
 }

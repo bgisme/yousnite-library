@@ -11,11 +11,8 @@ extension User: UserAuthenticatable {
         let (email, type, value) = Self.emailTypeValue(method)
         self.email = email
         self.type = type
-        if type == .email {
-            try setPassword(value)
-        } else {
-            self.value = value
-        }
+        try setValue(value)
+        self.unjoinedAt = nil   // unjoined user rejoining via password reset
         return self
     }
     

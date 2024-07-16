@@ -9,18 +9,22 @@ public protocol Validatable {
     
     var description: String { get }
     
-    func validate<Key: Codable & Hashable>(_ error: inout ValidateError<Key>,
+    func validate<Key: Codable & Hashable>(_ errors: inout ValidateResults<Key>,
                                            _ key: Key,
                                            _ validations: [Validation]) -> Value
 }
 
 extension Validatable where Self == Value {
-    public func validate<Key: Codable & Hashable>(_ error: inout ValidateError<Key>,
+    public func validate<Key: Codable & Hashable>(_ errors: inout ValidateResults<Key>,
                                                   _ key: Key,
                                                   _ validations: [Validation]) -> Value {
+        // always save the value
+        errors[key] = .init(self.description)
         for (test, message) in validations {
             if !test(self) {
-                error[key] = .init(self.description, message)
+                // overwrite with error message
+                errors[key] = .init(self.description, message)
+                break
             }
         }
         return self

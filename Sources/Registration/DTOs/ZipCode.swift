@@ -14,7 +14,7 @@ public struct ZipCode: Codable {
     }
     
     public init(_ value: String) throws {
-        var error = ValidateError<CodingKeys>()
+        var error = ValidateResults<CodingKeys>()
         self.value = value
             .unicodeScalars
             .filter{CharacterSet.decimalDigits.contains($0)}

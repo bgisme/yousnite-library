@@ -1,7 +1,7 @@
 // provide user feedback to forms
 public struct ValueMessage: Codable {
-    let value: String?      // entered by user and returned for display
-    let message: String?    // error or helpful guidance
+    public let value: String?      // entered by user and returned for display
+    public let message: String?    // error or helpful guidance
     
     public init(_ value: String? = nil, _ message: String? = nil) {
         self.value = value
@@ -9,7 +9,7 @@ public struct ValueMessage: Codable {
     }
 }
 
-public struct ValidateError<K>: Error, Codable where K: Codable, K: Hashable {
+public struct ValidateResults<K>: Error, Codable where K: Codable, K: Hashable {
     private var _results: [K: ValueMessage] = [:]
     
     public var results: [K: (String, String)] {
@@ -33,7 +33,7 @@ public struct ValidateError<K>: Error, Codable where K: Codable, K: Hashable {
     /// Create error separate from validation test
     /// For example...
     /// guard password == confirmPassword else {
-    ///    throw ValidateError<CodingKeys>(.confirmPassword, confirmPassword.value, "Does not match password.")
+    ///    throw ValidateResults<CodingKeys>(.confirmPassword, confirmPassword.value, "Does not match password.")
     /// }
     public init(_ key: K, _ value: String, _ message: String) {
         self.init([key : .init(value, message)])
@@ -41,7 +41,7 @@ public struct ValidateError<K>: Error, Codable where K: Codable, K: Hashable {
     
     /// Create empty container
     /// For example...
-    /// var error = ValidateError<CodingKeys>()
+    /// var error = ValidateResults<CodingKeys>()
     /// (self.value, error[.value]) = value.validate(Self.valueValidations)
     public init(_ results: [K: ValueMessage] = [:]) {
         self._results = results

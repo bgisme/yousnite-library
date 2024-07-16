@@ -2,20 +2,59 @@ import Vapor
 import Utilities
 
 public struct Password: Content {
-    public static let minPasswordLength = 11
+    public static var minPasswordLength = 11
+    public static var isLetterRequired = true
+    public static var isNumberRequired = true
+    public static var isPunctuationRequired = true
     
     public static func random(length: Int = minPasswordLength) -> String {
         let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567890~`!@#$%^&*()_-+={}[]:;<>,.?"
         return String((0..<30).map{ _ in chars.randomElement()! })
     }
     
-    public static let passwordValidations: [((String) -> Bool, String)] = [
-        ({!$0.isEmpty}, "Enter a password."),
-        ({$0.count >= minPasswordLength}, "Enter \(Self.minPasswordLength) or more characters."),
-        ({$0.rangeOfCharacter(from: .letters) != nil}, "Must contain letters."),
-        ({$0.rangeOfCharacter(from: .decimalDigits) != nil}, "Must contain numbers."),
-        ({$0.rangeOfCharacter(from: .punctuationCharacters) != nil}, "Must contain punctuation."),
-    ]
+    public static var passwordValidations: [((String) -> Bool, String)] {
+        var v: [((String) -> Bool, String)] = [
+            ({!$0.isEmpty}, "Enter a password."),
+            ({$0.count >= minPasswordLength}, "Password must be \(minPasswordLength) or more characters."),
+        ]
+        if isLetterRequired {
+            v += [({$0.rangeOfCharacter(from: .letters) != nil}, "Password must contain letters.")]
+        }
+        if isNumberRequired {
+            v += [({$0.rangeOfCharacter(from: .decimalDigits) != nil}, "Password must contain numbers.")]
+        }
+        if isPunctuationRequired {
+            v += [({$0.rangeOfCharacter(from: .punctuationCharacters) != nil}, "Password must contain punctuation.")]
+        }
+        return v
+    }
+    
+    public static var requirements: String {
+        let result = "Minimum \(minPasswordLength) characters."
+        var optionals = [String]()
+        if isLetterRequired {
+            optionals += ["letter"]
+        }
+        if isNumberRequired {
+            optionals += ["number"]
+        }
+        if isPunctuationRequired {
+            optionals += ["punctuaction mark"]
+        }
+        var options = " At least one "
+        switch optionals.count {
+        case Int.min...0:
+            options = ""
+        case 1:
+            options += optionals.first! + "."
+        case 2...Int.max:
+            options += optionals.joined(by: ", ") + "."
+        default:
+            // should never be reached
+            options = ""
+        }
+        return result + options
+    }
     
     public let value: String
     
@@ -27,14 +66,14 @@ public struct Password: Content {
     public init(password: String,
                 passwordValidations: [((String) -> Bool, String)] = Self.passwordValidations,
                 confirmPassword: String) throws {
-        var error = ValidateError<CodingKeys>()
+        var error = ValidateResults<CodingKeys>()
         self.value = password
             .trimmingCharacters(in: .whitespaces)
             .validate(&error, .password, passwordValidations)
-        guard password == confirmPassword else {
-            throw ValidateError<CodingKeys>(.confirm, "", "Does not match password.")
-        }
         guard error.isEmpty else { throw error }
+        guard password == confirmPassword else {
+            throw ValidateResults<CodingKeys>(.confirm, "", "Passwords did not match.")
+        }
     }
     
     public init(from decoder: any Decoder) throws {
