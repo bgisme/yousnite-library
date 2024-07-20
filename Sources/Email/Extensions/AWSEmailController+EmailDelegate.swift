@@ -1,7 +1,7 @@
 import Vapor
-import Users
+import Authenticate
 
-extension AWSEmailController: Users.EmailDelegate {
+extension AWSEmailController: Authenticate.NotificationDelegate {
     private(set) static var fromAddress = "noreply@yousnite.com"
     private(set) static var name = "Yousnite"
     
@@ -23,7 +23,7 @@ extension AWSEmailController: Users.EmailDelegate {
                                     ("##CLUB_NAME##", Self.name),
                                     ("##BUTTON_INSTRUCTION##", "Click to finish the process."),
                                     ("##BUTTON_TITLE##", "Register"),
-                                    ("##BUTTON_HREF##", link.absoluteString),
+                                    ("##BUTTON_HREF##", link),
                                     ("##DISCLAIMER##", "Ignore if not requested."),
                                 ])
             toAddress = address
@@ -52,7 +52,7 @@ extension AWSEmailController: Users.EmailDelegate {
                                     ("##CLUB_NAME##", Self.name),
                                     ("##BUTTON_INSTRUCTION##", "Click to reset password for \(address)."),
                                     ("##BUTTON_TITLE##", "Reset"),
-                                    ("##BUTTON_HREF##", link.absoluteString),
+                                    ("##BUTTON_HREF##", link),
                                     ("##DISCLAIMER##", "Ignore if not requested. Nothing has changed with your account."),
                                 ])
             toAddress = address

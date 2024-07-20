@@ -32,12 +32,3 @@ extension UserToken {
         case expiresAt
     }
 }
-
-extension UserToken: ModelTokenAuthenticatable {
-    static let valueKey = \UserToken.$value
-    static let userKey = \UserToken.$user
-    
-    var isValid: Bool {
-        return self.expiresAt > Date() && !self.isRevoked
-    }
-}

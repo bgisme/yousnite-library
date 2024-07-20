@@ -11,6 +11,11 @@ let package = Package(
     ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
+        .library(name: "Authenticate",
+                 targets: [
+                    "Utilities",
+                    "Authenticate",
+                 ]),
         .library(name: "Clubs",
                  targets: [
                     "Utilities",
@@ -18,7 +23,7 @@ let package = Package(
                  ]),
         .library(name: "Email",
                  targets: [
-                    "Users",
+                    "Authenticate",
                     "Email",
                  ]),
         .library(name: "Registration",
@@ -28,15 +33,16 @@ let package = Package(
                  ]),
         .library(name: "Users",
                  targets: [
-                    "Utilities",
+                    "Authenticate",
                     "Users",
                  ]),
-        .library(name: "Utilities", 
+        .library(name: "Utilities",
                  targets: [
                     "Utilities"
                  ]),
         .library(name: "YousniteLibrary",
                  targets: [
+                    "Authenticate",
                     "Clubs",
                     "Email",
                     "Registration",
@@ -57,6 +63,14 @@ let package = Package(
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
+        .target(name: "Authenticate",
+                dependencies: [
+                    .product(name: "Vapor", package: "vapor"),
+                    .product(name: "Fluent", package: "fluent"),
+                    .product(name: "JWT", package: "jwt"),
+                    .product(name: "ImperialGoogle", package: "Imperial"),
+                    "Utilities",
+                ]),
         .target(name: "Clubs",
                dependencies: [
                 .product(name: "Vapor", package: "vapor"),
@@ -67,7 +81,7 @@ let package = Package(
                 dependencies: [
                     .product(name: "Vapor", package: "vapor"),
                     .product(name: "SotoSESv2", package: "soto"),
-                    "Users",
+                    "Authenticate",
                 ]),
         .target(name: "Registration",
                dependencies: [
@@ -77,9 +91,7 @@ let package = Package(
                 dependencies: [
                     .product(name: "Vapor", package: "vapor"),
                     .product(name: "Fluent", package: "fluent"),
-                    .product(name: "JWT", package: "jwt"),
-                    .product(name: "ImperialGoogle", package: "Imperial"),
-                    "Utilities",
+                    "Authenticate",
                 ]),
         .target(name: "Utilities",
                 dependencies: [
@@ -87,6 +99,7 @@ let package = Package(
                     .product(name: "Fluent", package: "fluent"),
                 ]),
         .target(name: "YousniteLibrary", dependencies: [
+            "Authenticate",
             "Clubs",
             "Email",
             "Registration",
@@ -98,6 +111,7 @@ let package = Package(
                         .product(name: "Vapor", package: "vapor"),
                         .product(name: "Fluent", package: "fluent"),
                         .product(name: "JWT", package: "jwt"),
+                        "Authenticate",
                         "Clubs",
                         "Email",
                         "Registration",

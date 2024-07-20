@@ -19,7 +19,7 @@ Add the `YousniteLibrary` product from the `yousnite-library` package as a depen
 Then import individual modules where necessary:
 ```swift
 import Email
-import Users
+import Authenticate
 import Utilities
 ```
 
@@ -87,13 +87,13 @@ In the `configure.swift` file, add...
 ```swift
 try Authenticate.APIController.configure(app: app,
                                           source: User.self,
-                                          EmailDelegate: <any Protocol>,
+                                          NotificationDelegate: <any Protocol>,
                                           emailSender: <Name on emails>,
                                           ViewDelegate: <any Protocol>)
 
 ```
 
-Other libraries, like `User` and `Email`, contain pre-made classes for `APIDelegate`, `EmailDelegate` and `ViewDelegate`. 
+Other libraries, like `User` and `Email`, contain pre-made classes for `APIDelegate`, `NotificationDelegate` and `ViewDelegate`. 
 
 
 ## Ngrok

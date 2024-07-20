@@ -14,7 +14,7 @@ extension NestedRouteCollection {
     
     public static func path(to childRoutes: [PathComponent] = [],
                             isAbsolute: Bool = false,
-                            isToApp: Bool = false,
+                            isAPI: Bool = false,
                             appending: [String] = [],
                             parameters: [(Key, Value)] = []) -> String {
         var parentRoutes = [PathComponent]()
@@ -25,7 +25,7 @@ extension NestedRouteCollection {
         }
         var path = String()
         if isAbsolute {
-            if isToApp {
+            if isAPI {
                 path = Environment.get("BASE_APP_URI") ?? "UNKNOWN_BASE_APP_URI"
             } else if let envURI = Environment.get("BASE_WEB_URI") {
                 path = "https://" + envURI + "/"
